@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מעקב גמילה מסיגריות</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      text-align: center;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      max-width: 400px;
+      margin: auto;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .data {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>מעקב גמילה מסיגריות</h2>
+    <button onclick="startQuit()">התחלתי גמילה</button>
+    <button onclick="smoked()">עישנתי סיגריה</button><div class="data">
+  <p id="timePassed">עבר זמן: 0 שעות</p>
+  <p id="moneySaved">חסכון בכסף: ₪0</p>
+  <p id="cigsAvoided">סיגריות שלא עישנתי: 0</p>
+  <p id="cigsSmoked">עישנתי מאז תחילת הגמילה: 0</p>
+</div>
+
+  </div>  <script>
+    const MINUTES_BETWEEN_CIGS = 30;
+    const PRICE_PER_PACK = 35;
+    const CIGS_PER_PACK = 20;
+    const CIG_PRICE = PRICE_PER_PACK / CIGS_PER_PACK;
+
+    function startQuit() {
+      const now = new Date().getTime();
+      localStorage.setItem('quitTime', now);
+      localStorage.setItem('cigsSmoked', '0');
+      updateData();
+    }
+
+    function smoked() {
+      let smoked = parseInt(localStorage.getItem('cigsSmoked') || '0');
+      smoked++;
+      localStorage.setItem('cigsSmoked', smoked);
+      updateData();
+    }
+
+    function updateData() {
+      const quitTime = parseInt(localStorage.getItem('quitTime'));
+      const now = new Date().getTime();
+      if (!quitTime) return;
+
+      const minutesPassed = Math.floor((now - quitTime) / (1000 * 60));
+      const cigsAvoided = Math.floor(minutesPassed / MINUTES_BETWEEN_CIGS);
+      const moneySaved = (cigsAvoided * CIG_PRICE).toFixed(2);
+      const cigsSmoked = parseInt(localStorage.getItem('cigsSmoked') || '0');
+      const hoursPassed = Math.floor(minutesPassed / 60);
+
+      document.getElementById('timePassed').textContent = `עבר זמן: ${hoursPassed} שעות`;
+      document.getElementById('moneySaved').textContent = `חסכון בכסף: ₪${moneySaved}`;
+      document.getElementById('cigsAvoided').textContent = `סיגריות שלא עישנתי: ${cigsAvoided}`;
+      document.getElementById('cigsSmoked').textContent = `עישנתי מאז תחילת הגמילה: ${cigsSmoked}`;
+    }
+
+    setInterval(updateData, 60 * 1000); // עדכון כל דקה
+    updateData(); // קריאה ראשונית
+  </script></body>
+</html>
