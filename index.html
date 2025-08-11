@@ -1,91 +1,195 @@
-<!DOCTYPE html><html lang="he">
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מעקב גמילה מסיגריות</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      direction: rtl;
-      text-align: center;
-      background-color: #f4f4f4;
-      padding: 20px;
-    }
-    .container {
-      background-color: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      max-width: 400px;
-      margin: auto;
-    }
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      background-color: #4CAF50;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    .data {
-      margin-top: 20px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>טיימר עולה ב־5 דק׳ בכל לחיצה</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f5f5f5; padding:24px; text-align:center; }
+  .card { background:#fff; padding:20px; border-radius:14px; margin:0 auto; max-width:420px; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+  h1 { margin:0 0 10px; font-size:22px; }
+  .timer { font-size:56px; letter-spacing:1px; margin:8px 0 2px; }
+  .sub { color:#666; font-size:14px; margin-bottom:14px; }
+  .row { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; }
+  button { cursor:pointer; padding:10px 16px; border:none; border-radius:10px; font-size:16px; }
+  #startBtn { background:#2f7d32; color:white; }
+  #resetBtn { background:#e0e0e0; color:#333; }
+  .stat { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:10px; margin-top:12px; font-size:14px; }
+  .muted { color:#888; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h2>מעקב גמילה מסיגריות</h2>
-    <button onclick="startQuit()">התחלתי גמילה</button>
-    <button onclick="smoked()">עישנתי סיגריה</button><div class="data">
-  <p id="timePassed">עבר זמן: 0 שעות</p>
-  <p id="moneySaved">חסכון בכסף: ₪0</p>
-  <p id="cigsAvoided">סיגריות שלא עישנתי: 0</p>
-  <p id="cigsSmoked">עישנתי מאז תחילת הגמילה: 0</p>
-</div>
+  <div class="card">
+    <h1>טיימר שמתארך ב־5 דק׳ בכל לחיצה</h1>
+    <div id="timer" class="timer">30:00</div>
+    <div id="status" class="sub muted">מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות</div>
 
-  </div>  <script>
-    const MINUTES_BETWEEN_CIGS = 30;
-    const PRICE_PER_PACK = 35;
-    const CIGS_PER_PACK = 20;
-    const CIG_PRICE = PRICE_PER_PACK / CIGS_PER_PACK;
+    <div class="row" style="margin-top:10px;">
+      <button id="startBtn">התחל/י טיימר</button>
+      <button id="resetBtn" title="לא חובה — מאפס את המונה והטיימר">איפוס</button>
+    </div>
 
-    function startQuit() {
-      const now = new Date().getTime();
-      localStorage.setItem('quitTime', now);
-      localStorage.setItem('cigsSmoked', '0');
-      updateData();
+    <div class="stat">
+      <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
+      <div><strong>משך הטיימר הבא:</strong> <span id="nextLength">30 דקות</span></div>
+    </div>
+
+    <div class="stat">
+      <div><strong>ממוצע זמן בין לחיצות (לפי ההגדרה שלך):</strong></div>
+      <div id="avgText" class="muted">—</div>
+      <div class="muted" style="margin-top:6px;">(זמן שעבר מאז הלחיצה הראשונה ÷ מספר הלחיצות)</div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ===== DOM =====
+  const timerEl = document.getElementById('timer');
+  const statusEl = document.getElementById('status');
+  const startBtn = document.getElementById('startBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const pressCountEl = document.getElementById('pressCount');
+  const nextLengthEl = document.getElementById('nextLength');
+  const avgTextEl = document.getElementById('avgText');
+
+  // ===== State =====
+  let pressCount = 0;         // כמה לחיצות היו עד עכשיו
+  let baseMinutes = 30;       // משך טיימר ראשון
+  let increment = 5;          // תוספת דקות בכל לחיצה
+  let running = false;        // האם הטיימר רץ כרגע
+  let remainingMs = 0;        // מילי־שניות שנותרו בטיימר הנוכחי
+  let tickInterval = null;    // setInterval id לטיימר
+  let firstPressTs = null;    // זמן הלחיצה הראשונה (ms since epoch)
+  let avgInterval = null;     // interval לעדכון ממוצע בזמן אמת
+
+  // ===== Helpers =====
+  const mmss = (ms) => {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
+  const formatWords = (ms) => {
+    if (!isFinite(ms) || ms <= 0) return '—';
+    const totalSec = Math.round(ms / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const parts = [];
+    if (d) parts.push(`${d} יום${d > 1 ? 'ים' : ''}`);
+    if (h) parts.push(`${h} שעה${h > 1 ? 'ות' : ''}`);
+    if (m || (!d && !h)) parts.push(`${m} דקה${m !== 1 ? 'ות' : ''}`);
+    return parts.join(' ו');
+  };
+
+  const nextTimerMinutes = () => baseMinutes + increment * Math.max(0, pressCount - 0);
+
+  const updateUI = () => {
+    pressCountEl.textContent = String(pressCount);
+    nextLengthEl.textContent = `${nextTimerMinutes()} דקות`;
+  };
+
+  const updateAvgLive = () => {
+    if (!firstPressTs || pressCount === 0) {
+      avgTextEl.textContent = '—';
+      return;
     }
+    const now = Date.now();
+    const elapsed = now - firstPressTs;      // זמן שעבר מאז הלחיצה הראשונה
+    const avgMs = elapsed / pressCount;      // לפי ההגדרה שלך: חלקי מספר הלחיצות הכולל
+    avgTextEl.textContent = formatWords(avgMs);
+  };
 
-    function smoked() {
-      let smoked = parseInt(localStorage.getItem('cigsSmoked') || '0');
-      smoked++;
-      localStorage.setItem('cigsSmoked', smoked);
-      updateData();
+  const stopTimer = (finished = false) => {
+    running = false;
+    clearInterval(tickInterval);
+    tickInterval = null;
+    if (finished) {
+      remainingMs = 0;
+      timerEl.textContent = '00:00';
+      statusEl.textContent = 'הטיימר הסתיים — לחיצה נוספת תתחיל טיימר ארוך ב־5 דק׳.';
+      statusEl.classList.remove('muted');
     }
+    startBtn.disabled = false;
+  };
 
-    function updateData() {
-      const quitTime = parseInt(localStorage.getItem('quitTime'));
-      const now = new Date().getTime();
-      if (!quitTime) return;
+  const startTimer = () => {
+    if (running) return; // כדי למנוע התחלה כפולה
+    // עדכון לחיצות והגדרות
+    pressCount += 1;
+    if (!firstPressTs) firstPressTs = Date.now();
 
-      const minutesPassed = Math.floor((now - quitTime) / (1000 * 60));
-      const cigsAvoided = Math.floor(minutesPassed / MINUTES_BETWEEN_CIGS);
-      const moneySaved = (cigsAvoided * CIG_PRICE).toFixed(2);
-      const cigsSmoked = parseInt(localStorage.getItem('cigsSmoked') || '0');
-      const hoursPassed = Math.floor(minutesPassed / 60);
+    const minutes = nextTimerMinutes();
+    remainingMs = minutes * 60 * 1000;
 
-      document.getElementById('timePassed').textContent = `עבר זמן: ${hoursPassed} שעות`;
-      document.getElementById('moneySaved').textContent = `חסכון בכסף: ₪${moneySaved}`;
-      document.getElementById('cigsAvoided').textContent = `סיגריות שלא עישנתי: ${cigsAvoided}`;
-      document.getElementById('cigsSmoked').textContent = `עישנתי מאז תחילת הגמילה: ${cigsSmoked}`;
+    // UI
+    timerEl.textContent = mmss(remainingMs);
+    statusEl.textContent = `טיימר רץ: ${minutes} דקות`;
+    statusEl.classList.remove('muted');
+    updateUI();
+
+    // טיימר
+    running = true;
+    startBtn.disabled = true;
+
+    const startTs = Date.now();
+    tickInterval = setInterval(() => {
+      const passed = Date.now() - startTs;
+      const left = remainingMs - passed;
+      if (left <= 0) {
+        timerEl.textContent = '00:00';
+        stopTimer(true);
+      } else {
+        timerEl.textContent = mmss(left);
+      }
+    }, 200);
+
+    // עדכון ממוצע חי
+    if (avgInterval) clearInterval(avgInterval);
+    avgInterval = setInterval(updateAvgLive, 1000);
+    updateAvgLive();
+  };
+
+  const resetAll = () => {
+    // אפס הכל
+    pressCount = 0;
+    running = false;
+    remainingMs = 0;
+    firstPressTs = null;
+    clearInterval(tickInterval); tickInterval = null;
+    clearInterval(avgInterval);  avgInterval  = null;
+    timerEl.textContent = mmss(baseMinutes * 60 * 1000);
+    statusEl.textContent = 'מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות';
+    statusEl.classList.add('muted');
+    startBtn.disabled = false;
+    updateUI();
+    avgTextEl.textContent = '—';
+  };
+
+  // ===== Events =====
+startBtn.addEventListener('click', () => {
+  if (running) return; // לא מאפשרים התחלה בזמן ריצה
+  startTimer();
+});
+
+// מנגנון לחיצה כפולה מהירה לאיפוס + חלון אישור
+let lastResetClick = 0;
+resetBtn.addEventListener('click', () => {
+  const now = Date.now();
+  if (now - lastResetClick < 1000) {
+    // לחיצה שנייה מהירה => בקשת אישור
+    if (confirm('האם לאפס את כל הנתונים והטיימר?')) {
+      resetAll();
     }
+  }
+  // לא מציגים כלום בלחיצה הראשונה
+  lastResetClick = now;
+});
 
-    setInterval(updateData, 60 * 1000); // עדכון כל דקה
-    updateData(); // קריאה ראשונית
-  </script></body>
+  // ===== init =====
+  resetAll();
+})();
+</script>
+</body>
 </html>
