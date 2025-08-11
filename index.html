@@ -52,15 +52,37 @@
   const nextLengthEl = document.getElementById('nextLength');
   const avgTextEl = document.getElementById('avgText');
 
+  // ===== Config & Storage =====
+  const BASE_MINUTES = 30;
+  const INCREMENT = 5;
+  const LS_KEY = 'myTimerState.v1';
+
+  const defaultState = () => ({
+    pressCount: 0,
+    firstPressTs: null,
+    targetTs: null, // מתי מסתיים הטיימר הפעיל (אם יש)
+  });
+
+  const loadState = () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      return raw ? JSON.parse(raw) : defaultState();
+    } catch {
+      return defaultState();
+    }
+  };
+
+  const saveState = () => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    } catch {}
+  };
+
   // ===== State =====
-  let pressCount = 0;         // כמה לחיצות היו עד עכשיו
-  let baseMinutes = 30;       // משך טיימר ראשון
-  let increment = 5;          // תוספת דקות בכל לחיצה
-  let running = false;        // האם הטיימר רץ כרגע
-  let remainingMs = 0;        // מילי־שניות שנותרו בטיימר הנוכחי
-  let tickInterval = null;    // setInterval id לטיימר
-  let firstPressTs = null;    // זמן הלחיצה הראשונה (ms since epoch)
-  let avgInterval = null;     // interval לעדכון ממוצע בזמן אמת
+  let state = loadState();
+  let running = false;
+  let tickInterval = null;
+  let avgInterval = null;
 
   // ===== Helpers =====
   const mmss = (ms) => {
@@ -83,84 +105,82 @@
     return parts.join(' ו');
   };
 
-  const nextTimerMinutes = () => baseMinutes + increment * Math.max(0, pressCount - 0);
+  const nextTimerMinutes = () =>
+    BASE_MINUTES + INCREMENT * Math.max(0, state.pressCount);
 
   const updateUI = () => {
-    pressCountEl.textContent = String(pressCount);
+    pressCountEl.textContent = state.pressCount;
     nextLengthEl.textContent = `${nextTimerMinutes()} דקות`;
   };
 
   const updateAvgLive = () => {
-    if (!firstPressTs || pressCount === 0) {
+    if (!state.firstPressTs || state.pressCount === 0) {
       avgTextEl.textContent = '—';
       return;
     }
-    const now = Date.now();
-    const elapsed = now - firstPressTs;      // זמן שעבר מאז הלחיצה הראשונה
-    const avgMs = elapsed / pressCount;      // לפי ההגדרה שלך: חלקי מספר הלחיצות הכולל
+    const elapsed = Date.now() - state.firstPressTs;
+    const avgMs = elapsed / state.pressCount;
     avgTextEl.textContent = formatWords(avgMs);
   };
 
   const stopTimer = (finished = false) => {
     running = false;
     clearInterval(tickInterval);
+    clearInterval(avgInterval);
     tickInterval = null;
+    avgInterval = null;
+    state.targetTs = null;
+    saveState();
     if (finished) {
-      remainingMs = 0;
       timerEl.textContent = '00:00';
-      statusEl.textContent = 'הטיימר הסתיים — לחיצה נוספת תתחיל טיימר ארוך ב־5 דק׳.';
+      statusEl.textContent =
+        'הטיימר הסתיים — לחיצה נוספת תתחיל טיימר ארוך ב־5 דק׳.';
       statusEl.classList.remove('muted');
     }
     startBtn.disabled = false;
   };
 
   const startTimer = () => {
-    if (running) return; // כדי למנוע התחלה כפולה
-    // עדכון לחיצות והגדרות
-    pressCount += 1;
-    if (!firstPressTs) firstPressTs = Date.now();
+    if (running) return;
+
+    state.pressCount += 1;
+    if (!state.firstPressTs) state.firstPressTs = Date.now();
 
     const minutes = nextTimerMinutes();
-    remainingMs = minutes * 60 * 1000;
+    state.targetTs = Date.now() + minutes * 60 * 1000;
+    saveState();
 
-    // UI
-    timerEl.textContent = mmss(remainingMs);
+    running = true;
+    startBtn.disabled = true;
+    timerEl.textContent = mmss(state.targetTs - Date.now());
     statusEl.textContent = `טיימר רץ: ${minutes} דקות`;
     statusEl.classList.remove('muted');
     updateUI();
 
-    // טיימר
-    running = true;
-    startBtn.disabled = true;
-
-    const startTs = Date.now();
     tickInterval = setInterval(() => {
-      const passed = Date.now() - startTs;
-      const left = remainingMs - passed;
+      const left = state.targetTs - Date.now();
       if (left <= 0) {
-        timerEl.textContent = '00:00';
         stopTimer(true);
       } else {
         timerEl.textContent = mmss(left);
       }
     }, 200);
 
-    // עדכון ממוצע חי
-    if (avgInterval) clearInterval(avgInterval);
     avgInterval = setInterval(updateAvgLive, 1000);
     updateAvgLive();
   };
 
   const resetAll = () => {
-    // אפס הכל
-    pressCount = 0;
+    state = defaultState();
+    saveState();
     running = false;
-    remainingMs = 0;
-    firstPressTs = null;
-    clearInterval(tickInterval); tickInterval = null;
-    clearInterval(avgInterval);  avgInterval  = null;
-    timerEl.textContent = mmss(baseMinutes * 60 * 1000);
-    statusEl.textContent = 'מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות';
+    clearInterval(tickInterval);
+    clearInterval(avgInterval);
+    tickInterval = null;
+    avgInterval = null;
+    timerEl.textContent = mmss(BASE_MINUTES * 60 * 1000);
+    statusEl.textContent =
+      'מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות';
     statusEl.classList.add('muted');
     startBtn.disabled = false;
     updateUI();
@@ -168,27 +188,51 @@
   };
 
   // ===== Events =====
-startBtn.addEventListener('click', () => {
-  if (running) return; // לא מאפשרים התחלה בזמן ריצה
-  startTimer();
-});
+  startBtn.addEventListener('click', () => {
+    if (!running) startTimer();
+  });
 
-// מנגנון לחיצה כפולה מהירה לאיפוס + חלון אישור
-let lastResetClick = 0;
-resetBtn.addEventListener('click', () => {
-  const now = Date.now();
-  if (now - lastResetClick < 1000) {
-    // לחיצה שנייה מהירה => בקשת אישור
-    if (confirm('האם לאפס את כל הנתונים והטיימר?')) {
-      resetAll();
+  let lastResetClick = 0;
+  resetBtn.addEventListener('click', () => {
+    const now = Date.now();
+    if (now - lastResetClick < 800) {
+      if (confirm('האם לאפס את כל הנתונים והטיימר?')) {
+        resetAll();
+      }
+    }
+    lastResetClick = now;
+  });
+
+  // ===== Init =====
+  if (state.targetTs && state.targetTs > Date.now()) {
+    running = true;
+    startBtn.disabled = true;
+    statusEl.textContent = 'טיימר רץ';
+    statusEl.classList.remove('muted');
+    updateUI();
+    tickInterval = setInterval(() => {
+      const left = state.targetTs - Date.now();
+      if (left <= 0) {
+        stopTimer(true);
+      } else {
+        timerEl.textContent = mmss(left);
+      }
+    }, 200);
+    avgInterval = setInterval(updateAvgLive, 1000);
+    updateAvgLive();
+  } else {
+    if (state.targetTs) {
+      stopTimer(true);
+    } else {
+      timerEl.textContent = mmss(BASE_MINUTES * 60 * 1000);
+      statusEl.textContent =
+        'מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות';
+      statusEl.classList.add('muted');
+      startBtn.disabled = false;
+      updateUI();
+      updateAvgLive();
     }
   }
-  // לא מציגים כלום בלחיצה הראשונה
-  lastResetClick = now;
-});
-
-  // ===== init =====
-  resetAll();
 })();
 </script>
 </body>
