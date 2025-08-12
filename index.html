@@ -3,149 +3,98 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>טיימר עולה ב־5 דק׳ בכל לחיצה</title>
+<title>טיימר עם חישוב ממוצע ללא שינה</title>
 <style>
   body { font-family: Arial, sans-serif; background:#f5f5f5; padding:24px; text-align:center; }
   .card { background:#fff; padding:20px; border-radius:14px; margin:0 auto; max-width:420px; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
   h1 { margin:0 0 10px; font-size:22px; }
-  .timer { font-size:56px; letter-spacing:1px; margin:8px 0 2px; }
-  .sub { color:#666; font-size:14px; margin-bottom:14px; }
-  .row { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; }
+  .timer { font-size:56px; margin:8px 0; }
+  .row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   button { cursor:pointer; padding:10px 16px; border:none; border-radius:10px; font-size:16px; }
   #startBtn { background:#2f7d32; color:white; }
-  #resetBtn { background:#e0e0e0; color:#333; }
+  #addSleepBtn { background:#ff9800; color:white; }
   .stat { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:10px; margin-top:12px; font-size:14px; }
   .muted { color:#888; }
-
-  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:center; }
-  button {
-    background:#377ef6; color:#fff; border:none; border-radius:12px; padding:12px 32px;
-    font-size:1.06em; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(55,126,246,0.08);
-    transition: background 0.17s;
-  }
-  button:hover, button:focus { background:#215bb0; }
-
-  .stat { margin:20px 0 0 0; padding:12px 0 0 0; border-top:1px solid #f0f2f4; }
-  .stat strong { font-weight:700; color:#333; }
-  .stat > div { margin-bottom:4px; }
-
-  label { font-size:1em; color:#444; margin-left:8px; }
-  input[type="time"] {
-    background:#f8fafd; border:1px solid #e5ecfa; border-radius:7px; padding:5px 11px; font-size:0.99em;
-    margin-right:4px; margin-left:8px;
-  }
-  #avgText, #avgAll, #avgAwake { font-weight:600; color:#377ef6; font-size:1.12em; }
-
-  @media (max-width: 600px) {
-    .card { padding:18px 8px; max-width:98vw; }
-    .timer { font-size:2.2em; padding:10px 0; }
-    h1 { font-size:1.1em; }
-  }
+  label { font-size:1em; margin-left:8px; }
+  input[type="time"] { padding:5px; font-size:0.95em; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>טיימר שמתארך ב־5 דק׳ בכל לחיצה</h1>
-    <div id="timer" class="timer">30:00</div>
-    <div id="status" class="sub muted">מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות</div>
+<div class="card">
+  <h1>טיימר 30 דק׳ + 5 דק׳ בכל לחיצה</h1>
+  <div id="timer" class="timer">30:00</div>
+  <div id="status" class="muted">מוכן להתחיל</div>
 
-    <div class="row" style="margin-top:10px;">
-      <button id="startBtn">התחל/י טיימר</button>
-    </div>
-
-    <div class="stat">
-      <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
-      <div><strong>את/ה עומד/ת על:</strong> <span id="nextLength">30 דקות</span></div>
-    </div>
-
-    <div class="stat">
-      <div><strong>הממוצע לפי ההגדרה הקודמת שלך:</strong></div>
-      <div id="avgText" class="muted">—</div>
-      <div class="muted" style="margin-top:6px;">(זמן מאז הלחיצה הראשונה ÷ מספר הלחיצות)</div>
-    </div>
-
-    <div class="stat">
-      <div><strong>ממוצעים:</strong></div>
-      <div>ממוצע 24/7: <span id="avgAll">—</span></div>
-      <div>ממוצע בזמן ערות (ללא שינה): <span id="avgAwake">—</span></div>
-      <div class="muted" style="margin-top:6px;">(ממוצעים מחושבים על בסיס המרווחים בין לחיצות)</div>
-    </div>
-
-    <div class="stat">
-      <div><strong>העדפות שינה</strong></div>
-      <div class="row" style="margin-top:8px;">
-        <label>נרדמתי: <input type="time" id="sleepStart" value="23:30"></label>
-        <label>התעוררתי: <input type="time" id="sleepEnd" value="07:30"></label>
-      </div>
-      <div class="muted" style="margin-top:6px;">השעות יכולות לחצות חצות (למשל 23:30 → 07:30)</div>
-    </div>
+  <div class="row" style="margin-top:10px;">
+    <button id="startBtn">התחל טיימר</button>
   </div>
+
+  <div class="stat">
+    <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
+    <div><strong>אורך הטיימר הבא:</strong> <span id="nextLength">30 דקות</span></div>
+  </div>
+
+  <div class="stat">
+    <div><strong>הממוצע שלך (ללא שינה):</strong></div>
+    <div id="avgText" class="muted">—</div>
+  </div>
+
+  <div class="stat">
+    <div><strong>הוספת זמן שינה להסרה מהממוצע</strong></div>
+    <div class="row" style="margin-top:8px;">
+      <label>נרדמתי: <input type="time" id="sleepStart" value="23:30"></label>
+      <label>התעוררתי: <input type="time" id="sleepEnd" value="07:30"></label>
+      <button id="addSleepBtn">הוסף שינה</button>
+    </div>
+    <div id="sleepRemovedInfo" class="muted" style="margin-top:6px;">סה״כ שינה שהוסרה: 0 דקות</div>
+  </div>
+</div>
 
 <script>
 (() => {
-  // ===== DOM =====
+  const BASE_MINUTES = 90;
+  const INCREMENT = 5;
+  const LS_KEY = 'mySimpleTimer';
+
   const timerEl = document.getElementById('timer');
   const statusEl = document.getElementById('status');
   const startBtn = document.getElementById('startBtn');
   const pressCountEl = document.getElementById('pressCount');
   const nextLengthEl = document.getElementById('nextLength');
   const avgTextEl = document.getElementById('avgText');
-  const avgAllEl = document.getElementById('avgAll');
-  const avgAwakeEl = document.getElementById('avgAwake');
   const sleepStartInput = document.getElementById('sleepStart');
   const sleepEndInput = document.getElementById('sleepEnd');
-
-  // ===== Config & Storage =====
-  const BASE_MINUTES = 30; // הלחיצה הראשונה = 30 דק׳
-  const INCREMENT = 5;     // תוספת של 5 דק׳ לכל לחיצה נוספת
-  const LS_KEY = 'myTimerState.v2';
+  const addSleepBtn = document.getElementById('addSleepBtn');
+  const sleepRemovedInfo = document.getElementById('sleepRemovedInfo');
 
   const defaultState = () => ({
     pressCount: 0,
     firstPressTs: null,
     targetTs: null,
-    pressTimestamps: [],
-    sleepStartHHMM: "23:30",
-    sleepEndHHMM: "07:30"
+    totalSleepRemovedMin: 0
   });
 
   const loadState = () => {
-    try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : defaultState(); }
-    catch { return defaultState(); }
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      return raw ? JSON.parse(raw) : defaultState();
+    } catch { return defaultState(); }
   };
-  const saveState = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {} };
 
-  // ===== State =====
+  const saveState = () => {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  };
+
   let state = loadState();
-  state.pressTimestamps = Array.isArray(state.pressTimestamps) ? state.pressTimestamps : [];
-  if (!state.sleepStartHHMM) state.sleepStartHHMM = "23:30";
-  if (!state.sleepEndHHMM) state.sleepEndHHMM = "07:30";
-
   let running = false;
   let tickInterval = null;
-  let avgInterval = null;
 
-  // ===== Helpers =====
-  const mmss = (ms) => {
+  function mmss(ms) {
     const total = Math.max(0, Math.ceil(ms / 1000));
     const m = Math.floor(total / 60);
     const s = total % 60;
     return `${m}:${String(s).padStart(2, '0')}`;
-  };
-
-  // מציג “ימים/שעות/דקות”
-  const formatWords = (ms) => {
-    if (!isFinite(ms) || ms <= 0) return '—';
-    const totalSec = Math.round(ms / 1000);
-    const d = Math.floor(totalSec / 86400);
-    const h = Math.floor((totalSec % 86400) / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const parts = [];
-    if (d) parts.push(`${d} ימים`);
-    if (h) parts.push(`${h} שעות`);
-    if (m || (!d && !h)) parts.push(`${m} דקות`);
-    return parts.join(' ו');
-  };
+  }
 
   function formatMinutes(mins) {
     if (!isFinite(mins) || mins <= 0) return "—";
@@ -154,115 +103,58 @@
     return h > 0 ? `${h} ש׳ ${String(m).padStart(2,"0")} דק׳` : `${m} דק׳`;
   }
 
-  function parseHHMM(s) { const [h, m] = s.split(":").map(Number); return h * 60 + m; }
-
-  function overlapWithDailySleep(startMs, endMs, sleepStartMin, sleepEndMin) {
-    if (endMs <= startMs) return 0;
-    const MS_IN_MIN = 60 * 1000, MS_IN_DAY = 24 * 60 * MS_IN_MIN;
-    const dayStart = (t) => t - (t % MS_IN_DAY);
-    let curDayStart = dayStart(startMs), totalOverlapMin = 0;
-
-    while (curDayStart < endMs) {
-      const nextDayStart = curDayStart + MS_IN_DAY;
-      const clampStart = Math.max(startMs, curDayStart);
-      const clampEnd = Math.min(endMs, nextDayStart);
-      const crossesMidnight = sleepEndMin <= sleepStartMin;
-      const sleep1Start = curDayStart + sleepStartMin * MS_IN_MIN;
-
-      if (crossesMidnight) {
-        const sleep1End = nextDayStart;
-        totalOverlapMin += overlapMs(clampStart, clampEnd, sleep1Start, sleep1End) / MS_IN_MIN;
-        const sleep2Start = nextDayStart;
-        const sleep2End = nextDayStart + sleepEndMin * MS_IN_MIN;
-        totalOverlapMin += overlapMs(clampStart, clampEnd, sleep2Start, sleep2End) / MS_IN_MIN;
-      } else {
-        const sleepEndAbs = curDayStart + sleepEndMin * MS_IN_MIN;
-        totalOverlapMin += overlapMs(clampStart, clampEnd, sleep1Start, sleepEndAbs) / MS_IN_MIN;
-      }
-      curDayStart = nextDayStart;
-    }
-    return Math.max(0, totalOverlapMin);
-
-    function overlapMs(aStart, aEnd, bStart, bEnd) {
-      const s = Math.max(aStart, bStart), e = Math.min(aEnd, bEnd);
-      return Math.max(0, e - s);
-    }
+  function parseHHMMtoMinutes(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
   }
 
-  function averageIntervalsAll(ts) {
-    if (!ts || ts.length < 2) return 0;
-    let totalMin = 0;
-    for (let i = 1; i < ts.length; i++) totalMin += (ts[i] - ts[i - 1]) / 60000;
-    return totalMin / (ts.length - 1);
+  function calcSleepDurationMin(startHHMM, endHHMM) {
+    let start = parseHHMMtoMinutes(startHHMM);
+    let end = parseHHMMtoMinutes(endHHMM);
+    if (end < start) end += 1440; // חוצה חצות
+    return end - start;
   }
 
-  function averageIntervalsAwake(ts, sleepStartHHMM, sleepEndHHMM) {
-    if (!ts || ts.length < 2) return 0;
-    const sStart = parseHHMM(sleepStartHHMM), sEnd = parseHHMM(sleepEndHHMM);
-    let totalActiveMin = 0, count = 0;
-    for (let i = 1; i < ts.length; i++) {
-      const a = ts[i - 1], b = ts[i]; if (b <= a) continue;
-      const intervalMin = (b - a) / 60000;
-      const sleepOverlapMin = overlapWithDailySleep(a, b, sStart, sEnd);
-      totalActiveMin += Math.max(0, intervalMin - sleepOverlapMin);
-      count++;
-    }
-    return count ? totalActiveMin / count : 0;
+  function nextTimerMinutes() {
+    return BASE_MINUTES + INCREMENT * Math.max(0, state.pressCount);
   }
 
-  // אורך הטיימר הבא (על בסיס מספר הלחיצות שבוצעו עד עכשיו)
-  const nextTimerMinutes = () => BASE_MINUTES + INCREMENT * Math.max(0, state.pressCount);
-
-  const updateUI = () => {
+  function updateUI() {
     pressCountEl.textContent = state.pressCount;
     nextLengthEl.textContent = `${nextTimerMinutes()} דקות`;
-  };
+    sleepRemovedInfo.textContent = `סה״כ שינה שהוסרה: ${state.totalSleepRemovedMin} דקות`;
+    updateAverage();
+  }
 
-  const updateAverages = () => {
-    if (!state.pressTimestamps || state.pressTimestamps.length < 2) {
-      avgAllEl.textContent = '—';
-      avgAwakeEl.textContent = '—';
-    } else {
-      const avgAllMin = averageIntervalsAll(state.pressTimestamps);
-      const avgAwakeMin = averageIntervalsAwake(state.pressTimestamps, state.sleepStartHHMM, state.sleepEndHHMM);
-      avgAllEl.textContent = formatMinutes(avgAllMin);
-      avgAwakeEl.textContent = formatMinutes(avgAwakeMin);
-    }
-
-    if (state.firstPressTs && state.pressCount > 0) {
-      const elapsed = Date.now() - state.firstPressTs;
-      avgTextEl.textContent = formatWords(elapsed / state.pressCount);
-    } else {
+  function updateAverage() {
+    if (!state.firstPressTs || state.pressCount === 0) {
       avgTextEl.textContent = '—';
+      return;
     }
-  };
+    const elapsedMin = (Date.now() - state.firstPressTs) / 60000;
+    const adjustedMin = elapsedMin - state.totalSleepRemovedMin;
+    const avg = adjustedMin / state.pressCount;
+    avgTextEl.textContent = formatMinutes(avg);
+  }
 
-  const stopTimer = (finished = false) => {
+  function stopTimer() {
     running = false;
-    clearInterval(tickInterval); clearInterval(avgInterval);
-    tickInterval = null; avgInterval = null;
-    state.targetTs = null; saveState();
-    if (finished) {
-      timerEl.textContent = '00:00';
-      statusEl.textContent = 'הטיימר הסתיים — לחיצה נוספת תתחיל טיימר ארוך ב־5 דק׳.';
-      statusEl.classList.remove('muted');
-    }
+    clearInterval(tickInterval);
+    tickInterval = null;
+    state.targetTs = null;
+    saveState();
     startBtn.disabled = false;
-  };
+    timerEl.textContent = '00:00';
+    statusEl.textContent = 'הטיימר הסתיים';
+  }
 
-  const startTimer = () => {
+  function startTimer() {
     if (running) return;
     const nowTs = Date.now();
-
-    // מחשבים את האורך לפי מצב נוכחי (לפני הגדלת המונה),
-    // כדי שהלחיצה הראשונה תהיה 30 דק׳, השנייה 35, וכו׳.
     const minutes = nextTimerMinutes();
 
-    // רושמים לחיצה ואח"כ מגדילים מונה
-    state.pressTimestamps.push(nowTs);
     if (!state.firstPressTs) state.firstPressTs = nowTs;
     state.pressCount += 1;
-
     state.targetTs = nowTs + minutes * 60 * 1000;
     saveState();
 
@@ -270,86 +162,43 @@
     startBtn.disabled = true;
     timerEl.textContent = mmss(state.targetTs - Date.now());
     statusEl.textContent = `טיימר רץ: ${minutes} דקות`;
-    statusEl.classList.remove('muted');
     updateUI();
 
     tickInterval = setInterval(() => {
       const left = state.targetTs - Date.now();
-      if (left <= 0) { stopTimer(true); updateAverages(); }
-      else { timerEl.textContent = mmss(left); }
+      if (left <= 0) stopTimer();
+      else timerEl.textContent = mmss(left);
+      updateAverage();
     }, 200);
+  }
 
-    avgInterval = setInterval(updateAverages, 1000);
-    updateAverages();
-  };
+  startBtn.addEventListener('click', startTimer);
 
-  const resetAll = () => {
-    const keepSleepStart = state.sleepStartHHMM;
-    const keepSleepEnd = state.sleepEndHHMM;
-    state = defaultState();
-    state.sleepStartHHMM = keepSleepStart;
-    state.sleepEndHHMM = keepSleepEnd;
+  addSleepBtn.addEventListener('click', () => {
+    const start = sleepStartInput.value || "23:30";
+    const end = sleepEndInput.value || "07:30";
+    const dur = calcSleepDurationMin(start, end);
+    state.totalSleepRemovedMin += dur;
     saveState();
-
-    running = false;
-    clearInterval(tickInterval); clearInterval(avgInterval);
-    tickInterval = null; avgInterval = null;
-
-    timerEl.textContent = mmss(BASE_MINUTES * 60 * 1000);
-    statusEl.textContent = 'מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות';
-    statusEl.classList.add('muted');
-    startBtn.disabled = false;
     updateUI();
-
-    avgTextEl.textContent = '—';
-    avgAllEl.textContent = '—';
-    avgAwakeEl.textContent = '—';
-
-    if (sleepStartInput) sleepStartInput.value = state.sleepStartHHMM;
-    if (sleepEndInput) sleepEndInput.value = state.sleepEndHHMM;
-  };
-
-  // ===== Events =====
-  startBtn.addEventListener('click', () => { if (!running) startTimer(); });
-  // בלי resetBtn בכלל
-
-  if (sleepStartInput) sleepStartInput.addEventListener('change', () => {
-    state.sleepStartHHMM = sleepStartInput.value || "23:30";
-    saveState(); updateAverages();
-  });
-  if (sleepEndInput) sleepEndInput.addEventListener('change', () => {
-    state.sleepEndHHMM = sleepEndInput.value || "07:30";
-    saveState(); updateAverages();
   });
 
-  // ===== Init =====
-  if (sleepStartInput) sleepStartInput.value = state.sleepStartHHMM;
-  if (sleepEndInput) sleepEndInput.value = state.sleepEndHHMM;
-
+  // אתחול
   if (state.targetTs && state.targetTs > Date.now()) {
     running = true;
     startBtn.disabled = true;
     statusEl.textContent = 'טיימר רץ';
-    statusEl.classList.remove('muted');
-    updateUI();
     tickInterval = setInterval(() => {
       const left = state.targetTs - Date.now();
-      if (left <= 0) { stopTimer(true); updateAverages(); }
-      else { timerEl.textContent = mmss(left); }
+      if (left <= 0) stopTimer();
+      else timerEl.textContent = mmss(left);
+      updateAverage();
     }, 200);
-    avgInterval = setInterval(updateAverages, 1000);
-    updateAverages();
   } else {
-    if (state.targetTs) { stopTimer(true); }
-    else {
-      timerEl.textContent = mmss(BASE_MINUTES * 60 * 1000);
-      statusEl.textContent = 'מוכן להתחיל — הלחיצה הראשונה תפתח 30 דקות';
-      statusEl.classList.add('muted');
-      startBtn.disabled = false;
-      updateUI();
-      updateAverages();
-    }
+    timerEl.textContent = mmss(BASE_MINUTES * 60 * 1000);
+    statusEl.textContent = 'מוכן להתחיל';
   }
+  updateUI();
 })();
 </script>
 </body>
