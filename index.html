@@ -17,6 +17,83 @@
   .muted { color:#888; }
   label { font-size:1em; margin-left:8px; }
   input[type="time"] { padding:5px; font-size:0.95em; }
+  .stat2 {
+  background: #f9f9fb;
+  border: 1px solid #d3d3e7;
+  border-radius: 10px;
+  padding: 22px 18px 16px 18px;
+  box-shadow: 0 2px 8px rgba(90,100,120,0.06);
+  max-width: 400px;
+  direction: rtl;
+  font-family: 'Heebo', Arial, sans-serif;
+  margin: 38px auto 0 auto; /* רווח למעלה ויישור לאמצע */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat2 > div:first-child {
+  font-size: 1.12em;
+  color: #272752;
+  margin-bottom: 10px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.row2 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.row2 label {
+  font-size: 1em;
+  color: #38387a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.row2 input[type="time"] {
+  border: 1px solid #b8b8d1;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 1em;
+  background: #fff;
+  color: #2e2e47;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.row2 input[type="time"]:focus {
+  border-color: #6c63ff;
+}
+
+#addSleepBtn {
+  background: linear-gradient(92deg, #6c63ff 20%, #8f7cff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 1em;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(80,80,120,0.07);
+}
+
+#addSleepBtn:hover {
+  background: linear-gradient(92deg, #534bda 20%, #7a6be3 100%);
+}
+
+.muted2 {
+  color: #75759b;
+  font-size: 0.97em;
+  margin-top: 7px;
+  text-align: center;
+}
 </style>
 </head>
 <body>
@@ -39,14 +116,14 @@
     <div id="avgText" class="muted">—</div>
   </div>
 
-  <div class="stat">
+  <div class="stat2">
     <div><strong>הוספת זמן שינה להסרה מהממוצע</strong></div>
-    <div class="row" style="margin-top:8px;">
+    <div class="row2" style="margin-top:8px;">
       <label>נרדמתי: <input type="time" id="sleepStart" value="23:30"></label>
       <label>התעוררתי: <input type="time" id="sleepEnd" value="07:30"></label>
       <button id="addSleepBtn">הוסף שינה</button>
     </div>
-    <div id="sleepRemovedInfo" class="muted" style="margin-top:6px;">סה״כ שינה שהוסרה: 0 דקות</div>
+    <div id="sleepRemovedInfo" class="muted2" style="margin-top:6px;">סה״כ שינה שהוסרה: 0 דקות</div>
   </div>
 </div>
 
