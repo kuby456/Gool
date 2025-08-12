@@ -76,7 +76,7 @@
 
 <script>
 (() => {
-  const BASE_MINUTES = 100; // כמו שהיה
+  const BASE_MINUTES = 110; // כמו שהיה
   const INCREMENT = 5;
   const LS_KEY = 'mySimpleTimer';
 
@@ -168,18 +168,32 @@
     dailyCountEl.textContent = state.dailyCount;
     updateAverage();
   }
+  
+  
+function formatDurationFromMinutes(minsFloat) {
+  if (!isFinite(minsFloat) || minsFloat <= 0) return "—";
+  const totalMinutes = Math.round(minsFloat);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
 
-  function updateAverage() {
-    if (!state.firstPressTs || state.pressCount < 2) {
-      avgTextEl.textContent = '—';
-      return;
-    }
-    const elapsedMin = (Date.now() - state.firstPressTs) / 60000;
-    const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
-    const intervals = state.pressCount - 1;
-    const avg = adjustedMin / intervals;
-    avgTextEl.textContent = formatMinutes(avg);
+  if (h > 0) {
+    return `${h} ש׳ ${m} דק׳`;
   }
+  return `${m} דק׳`;
+}
+
+// ממוצע הזמן בין עישונים: (זמן כולל פחות שינה) / מספר לחיצות
+function updateAverage() {
+  const n = state.pressCount;
+  if (!state.firstPressTs || n === 0) {
+    avgTextEl.textContent = '—';
+    return;
+  }
+  const elapsedMin = (Date.now() - state.firstPressTs) / 60000;
+  const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
+  const avg = adjustedMin / n; // חלוקה במספר הלחיצות (1→1, 2→2, 3→3...)
+  avgTextEl.textContent = formatDurationFromMinutes(avg);
+}
 
   function stopTimer() {
     running = false;
