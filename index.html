@@ -46,7 +46,25 @@
   <div class="row" style="margin-top:10px;">
     <button id="startBtn">התחל טיימר</button>
   </div>
+<div class="card" id="morningTimerCard" style="display:none;">
+  <h1>⏰ טיימר בוקר</h1>
+  <div id="morningTimer" class="timer">10:00</div>
+  <div id="morningStatus" class="muted">מוכן להתחיל</div>
+  <div class="row" style="margin-top:10px;">
+    <button id="startMorningBtn">התחל טיימר בוקר</button>
+  </div>
+  <div class="stat">
+    <div><strong>מספר לחיצות בוקר:</strong> <span id="morningCount">0</span></div>
+    <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
+  </div>
+</div>
 
+<!-- כפתור חשיפה -->
+<div style="margin-top:20px; text-align:center;">
+  <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
+    הצג טיימר בוקר
+  </button>
+</div>
   <div class="stat">
     <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
     <div><strong>אורך הטיימר הבא:</strong> <span id="nextLength">30 דקות</span></div>
@@ -76,7 +94,7 @@
 
 <script>
 (() => {
-  const BASE_MINUTES = 150; // כמו שהיה
+  const BASE_MINUTES = 1; // כמו שהיה
   const INCREMENT = 5;
   const LS_KEY = 'mySimpleTimer';
 
@@ -272,6 +290,107 @@ saveState(); // <- שמירה כדי שהאיפוס ייקלט גם בלי לח�
   }
 
   updateUI();
+  
+  (() => {
+  const MORNING_BASE = 10; // דקות התחלה
+  const MORNING_INC = 5;   // דקות תוספת כל לחיצה
+  const LS_KEY_MORNING = 'morningTimerState';
+
+  const morningCard = document.getElementById('morningTimerCard');
+  const showMorningBtn = document.getElementById('showMorningBtn');
+  const morningTimerEl = document.getElementById('morningTimer');
+  const morningStatusEl = document.getElementById('morningStatus');
+  const morningCountEl = document.getElementById('morningCount');
+  const morningNextEl = document.getElementById('morningNext');
+  const startMorningBtn = document.getElementById('startMorningBtn');
+
+  let morningState = {
+    count: 0,
+    targetTs: null
+  };
+  let morningRunning = false;
+  let morningInterval = null;
+
+  // טעינת מצב קיים
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY_MORNING));
+    if (saved && typeof saved.count === 'number') {
+      morningState = saved;
+    }
+  } catch {}
+
+  function saveMorningState() {
+    localStorage.setItem(LS_KEY_MORNING, JSON.stringify(morningState));
+  }
+
+  function mmss(ms) {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function nextMorningMinutes() {
+    return MORNING_BASE + MORNING_INC * morningState.count;
+  }
+
+  function updateMorningUI() {
+    morningCountEl.textContent = morningState.count;
+    morningNextEl.textContent = `${nextMorningMinutes()} דקות`;
+  }
+
+  function stopMorning() {
+    morningRunning = false;
+    clearInterval(morningInterval);
+    morningInterval = null;
+    morningState.targetTs = null;
+    saveMorningState();
+    startMorningBtn.disabled = false;
+    morningTimerEl.textContent = '00:00';
+    morningStatusEl.textContent = 'הטיימר הסתיים';
+  }
+
+  function startMorning() {
+    if (morningRunning) return;
+    const nowTs = Date.now();
+    const minutes = nextMorningMinutes();
+    morningState.count += 1;
+    morningState.targetTs = nowTs + minutes * 60 * 1000;
+    saveMorningState();
+    morningRunning = true;
+    startMorningBtn.disabled = true;
+    morningTimerEl.textContent = mmss(morningState.targetTs - Date.now());
+    morningStatusEl.textContent = `טיימר רץ: ${minutes} דקות`;
+    updateMorningUI();
+
+    morningInterval = setInterval(() => {
+      const left = morningState.targetTs - Date.now();
+      if (left <= 0) stopMorning();
+      else morningTimerEl.textContent = mmss(left);
+    }, 200);
+  }
+
+  showMorningBtn.addEventListener('click', () => {
+    morningCard.style.display = 'block';
+  });
+
+  startMorningBtn.addEventListener('click', startMorning);
+
+  // אתחול מסך
+  updateMorningUI();
+  if (morningState.targetTs && morningState.targetTs > Date.now()) {
+    morningRunning = true;
+    startMorningBtn.disabled = true;
+    morningStatusEl.textContent = 'טיימר רץ';
+    morningInterval = setInterval(() => {
+      const left = morningState.targetTs - Date.now();
+      if (left <= 0) stopMorning();
+      else morningTimerEl.textContent = mmss(left);
+    }, 200);
+  } else {
+    morningTimerEl.textContent = mmss(MORNING_BASE * 60 * 1000);
+  }
+})();
 })();
 </script>
 </body>
