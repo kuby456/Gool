@@ -94,42 +94,55 @@
 
 <script>
 (() => {
-  const BASE_MINUTES = 1; // כמו שהיה
-  const INCREMENT = 5;
-  const LS_KEY = 'mySimpleTimer';
+  // ===== הגדרות טיימר ראשי =====
+  const BASE_MINUTES = 155;   // <<< שנה כאן את הבסיס שרצית
+  const INCREMENT    = 5;     // תוספת בכל הפעלה
+  const LS_KEY       = 'mySimpleTimer';
 
-  const timerEl = document.getElementById('timer');
-  const statusEl = document.getElementById('status');
-  const startBtn = document.getElementById('startBtn');
-  const pressCountEl = document.getElementById('pressCount');
-  const nextLengthEl = document.getElementById('nextLength');
-  const avgTextEl = document.getElementById('avgText');
-  const sleepStartInput = document.getElementById('sleepStart');
-  const sleepEndInput = document.getElementById('sleepEnd');
-  const addSleepBtn = document.getElementById('addSleepBtn');
-  const sleepRemovedInfo = document.getElementById('sleepRemovedInfo');
-  const dailyCountEl = document.getElementById('dailyCount');
+  // אלמנטים
+  const timerEl       = document.getElementById('timer');
+  const statusEl      = document.getElementById('status');
+  const startBtn      = document.getElementById('startBtn');
+  const pressCountEl  = document.getElementById('pressCount');
+  const nextLengthEl  = document.getElementById('nextLength');
+  const avgTextEl     = document.getElementById('avgText');
+  const sleepStartInp = document.getElementById('sleepStart');
+  const sleepEndInp   = document.getElementById('sleepEnd');
+  const addSleepBtn   = document.getElementById('addSleepBtn');
+  const sleepInfoEl   = document.getElementById('sleepRemovedInfo');
+  const dailyCountEl  = document.getElementById('dailyCount');
 
   const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
 
+  // מצב ברירת מחדל
   const defaultState = () => ({
     pressCount: 0,
     firstPressTs: null,
     targetTs: null,
     totalSleepRemovedMin: 0,
-    // ספירת "היום" = חלון שמתרענן אחרי 3 שעות חוסר פעילות
     dailyCount: 0,
-    lastPressTs: null
+    lastPressTs: null,
+    baseMinSnapshot: BASE_MINUTES // צילום של בסיס הדקות האחרון
   });
 
+  // טעינת מצב עם הגנה על שינוי בסיס
   const loadState = () => {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      const s = raw ? JSON.parse(raw) : defaultState();
+      let s = raw ? JSON.parse(raw) : defaultState();
+
+      // אם שינית את BASE_MINUTES מאז—לאפס ספירה ולהסתנכרן לבסיס החדש
+      if (s.baseMinSnapshot !== BASE_MINUTES) {
+        s = defaultState();
+        s.baseMinSnapshot = BASE_MINUTES;
+      }
+
       if (typeof s.dailyCount !== 'number') s.dailyCount = 0;
       if (typeof s.lastPressTs !== 'number') s.lastPressTs = null;
       return s;
-    } catch { return defaultState(); }
+    } catch {
+      return defaultState();
+    }
   };
 
   let state = loadState();
@@ -156,11 +169,12 @@
     return `${m}:${String(s).padStart(2, '0')}`;
   }
 
-  function formatMinutes(mins) {
-    if (!isFinite(mins) || mins <= 0) return "—";
-    const h = Math.floor(mins / 60);
-    const m = Math.round(mins % 60);
-    return h > 0 ? `${h} ש׳ ${String(m).padStart(2,"0")} דק׳` : `${m} דק׳`;
+  function formatDurationFromMinutes(minsFloat) {
+    if (!isFinite(minsFloat) || minsFloat <= 0) return "—";
+    const totalMinutes = Math.round(minsFloat);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return h > 0 ? `${h} ש׳ ${m} דק׳` : `${m} דק׳`;
   }
 
   function parseHHMMtoMinutes(hhmm) {
@@ -179,39 +193,26 @@
     return BASE_MINUTES + INCREMENT * Math.max(0, state.pressCount);
   }
 
+  // הממוצע הקיים שלך: (זמן כולל פחות שינה) / מספר לחיצות
+  function updateAverage() {
+    const n = state.pressCount;
+    if (!state.firstPressTs || n === 0) {
+      avgTextEl.textContent = '—';
+      return;
+    }
+    const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
+    const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
+    const avg         = adjustedMin / n;
+    avgTextEl.textContent = formatDurationFromMinutes(avg);
+  }
+
   function updateUI() {
     pressCountEl.textContent = state.pressCount;
     nextLengthEl.textContent = `${nextTimerMinutes()} דקות`;
-    sleepRemovedInfo.textContent = `סה״כ שינה שהוסרה: ${state.totalSleepRemovedMin} דקות`;
+    sleepInfoEl.textContent  = `סה״כ שינה שהוסרה: ${state.totalSleepRemovedMin} דקות`;
     dailyCountEl.textContent = state.dailyCount;
     updateAverage();
   }
-  
-  
-function formatDurationFromMinutes(minsFloat) {
-  if (!isFinite(minsFloat) || minsFloat <= 0) return "—";
-  const totalMinutes = Math.round(minsFloat);
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-
-  if (h > 0) {
-    return `${h} ש׳ ${m} דק׳`;
-  }
-  return `${m} דק׳`;
-}
-
-// ממוצע הזמן בין עישונים: (זמן כולל פחות שינה) / מספר לחיצות
-function updateAverage() {
-  const n = state.pressCount;
-  if (!state.firstPressTs || n === 0) {
-    avgTextEl.textContent = '—';
-    return;
-  }
-  const elapsedMin = (Date.now() - state.firstPressTs) / 60000;
-  const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
-  const avg = adjustedMin / n; // חלוקה במספר הלחיצות (1→1, 2→2, 3→3...)
-  avgTextEl.textContent = formatDurationFromMinutes(avg);
-}
 
   function stopTimer() {
     running = false;
@@ -227,16 +228,15 @@ function updateAverage() {
   function startTimer() {
     if (running) return;
 
-    // לפני ספירה — לבדוק אם עברו 3 שעות בלי הפעלה
     checkResetAfterInactivity();
 
-    const nowTs = Date.now();
+    const nowTs   = Date.now();
     const minutes = nextTimerMinutes();
 
     if (!state.firstPressTs) state.firstPressTs = nowTs;
-    state.pressCount += 1;
 
-    // ספירת חלון אחרון
+    // נחשב הפעלה כסיגריה
+    state.pressCount += 1;
     state.dailyCount += 1;
     state.lastPressTs = nowTs;
 
@@ -257,22 +257,21 @@ function updateAverage() {
     }, 200);
   }
 
+  // מאזינים
   startBtn.addEventListener('click', startTimer);
 
   addSleepBtn.addEventListener('click', () => {
-    const start = sleepStartInput.value || "23:30";
-    const end = sleepEndInput.value || "07:30";
-    const dur = calcSleepDurationMin(start, end);
+    const start = sleepStartInp.value || "23:30";
+    const end   = sleepEndInp.value || "07:30";
+    const dur   = calcSleepDurationMin(start, end);
     state.totalSleepRemovedMin += dur;
     saveState();
     updateUI();
   });
 
-  // אתחול
-  // אם פותחים את הדף אחרי הרבה זמן – נאפס את הספירה לפי כלל ה-3 שעות
-  // אתחול
-checkResetAfterInactivity();
-saveState(); // <- שמירה כדי שהאיפוס ייקלט גם בלי לחיצה();
+  // אתחול טיימר ראשי
+  checkResetAfterInactivity();
+  saveState();
 
   if (state.targetTs && state.targetTs > Date.now()) {
     running = true;
@@ -290,107 +289,106 @@ saveState(); // <- שמירה כדי שהאיפוס ייקלט גם בלי לח�
   }
 
   updateUI();
-  
-  (() => {
-  const MORNING_BASE = 10; // דקות התחלה
-  const MORNING_INC = 5;   // דקות תוספת כל לחיצה
-  const LS_KEY_MORNING = 'morningTimerState';
 
-  const morningCard = document.getElementById('morningTimerCard');
-  const showMorningBtn = document.getElementById('showMorningBtn');
-  const morningTimerEl = document.getElementById('morningTimer');
-  const morningStatusEl = document.getElementById('morningStatus');
-  const morningCountEl = document.getElementById('morningCount');
-  const morningNextEl = document.getElementById('morningNext');
-  const startMorningBtn = document.getElementById('startMorningBtn');
+  // ===== טיימר בוקר (IIFE נפרד) =====
+  ;(() => {
+    const MORNING_BASE = 10;
+    const MORNING_INC  = 5;
+    const LS_KEY_MORN  = 'morningTimerState';
 
-  let morningState = {
-    count: 0,
-    targetTs: null
-  };
-  let morningRunning = false;
-  let morningInterval = null;
+    const morningCard    = document.getElementById('morningTimerCard');
+    const showMorningBtn = document.getElementById('showMorningBtn');
+    const morningTimerEl = document.getElementById('morningTimer');
+    const morningStatus  = document.getElementById('morningStatus');
+    const morningCountEl = document.getElementById('morningCount');
+    const morningNextEl  = document.getElementById('morningNext');
+    const startMorningBtn= document.getElementById('startMorningBtn');
 
-  // טעינת מצב קיים
-  try {
-    const saved = JSON.parse(localStorage.getItem(LS_KEY_MORNING));
-    if (saved && typeof saved.count === 'number') {
-      morningState = saved;
+    let morningState   = { count: 0, targetTs: null };
+    let morningRunning = false;
+    let morningInterval= null;
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY_MORN));
+      if (saved && typeof saved.count === 'number') morningState = saved;
+    } catch {}
+
+    function saveMorning() {
+      try { localStorage.setItem(LS_KEY_MORN, JSON.stringify(morningState)); } catch {}
     }
-  } catch {}
 
-  function saveMorningState() {
-    localStorage.setItem(LS_KEY_MORNING, JSON.stringify(morningState));
-  }
+    function mmss(ms) {
+      const total = Math.max(0, Math.ceil(ms / 1000));
+      const m = Math.floor(total / 60);
+      const s = total % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
 
-  function mmss(ms) {
-    const total = Math.max(0, Math.ceil(ms / 1000));
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  }
+    function nextMorningMinutes() {
+      return MORNING_BASE + MORNING_INC * morningState.count;
+    }
 
-  function nextMorningMinutes() {
-    return MORNING_BASE + MORNING_INC * morningState.count;
-  }
+    function updateMorningUI() {
+      if (morningCountEl) morningCountEl.textContent = morningState.count;
+      if (morningNextEl)  morningNextEl.textContent  = `${nextMorningMinutes()} דקות`;
+    }
 
-  function updateMorningUI() {
-    morningCountEl.textContent = morningState.count;
-    morningNextEl.textContent = `${nextMorningMinutes()} דקות`;
-  }
+    function stopMorning() {
+      morningRunning = false;
+      clearInterval(morningInterval);
+      morningInterval = null;
+      morningState.targetTs = null;
+      saveMorning();
+      if (startMorningBtn) startMorningBtn.disabled = false;
+      if (morningTimerEl)  morningTimerEl.textContent = '00:00';
+      if (morningStatus)   morningStatus.textContent  = 'הטיימר הסתיים';
+    }
 
-  function stopMorning() {
-    morningRunning = false;
-    clearInterval(morningInterval);
-    morningInterval = null;
-    morningState.targetTs = null;
-    saveMorningState();
-    startMorningBtn.disabled = false;
-    morningTimerEl.textContent = '00:00';
-    morningStatusEl.textContent = 'הטיימר הסתיים';
-  }
+    function startMorning() {
+      if (morningRunning) return;
+      const nowTs   = Date.now();
+      const minutes = nextMorningMinutes();
+      morningState.count += 1;
+      morningState.targetTs = nowTs + minutes * 60 * 1000;
+      saveMorning();
+      morningRunning = true;
+      if (startMorningBtn) startMorningBtn.disabled = true;
+      if (morningTimerEl)  morningTimerEl.textContent = mmss(morningState.targetTs - Date.now());
+      if (morningStatus)   morningStatus.textContent  = `טיימר רץ: ${minutes} דקות`;
+      updateMorningUI();
 
-  function startMorning() {
-    if (morningRunning) return;
-    const nowTs = Date.now();
-    const minutes = nextMorningMinutes();
-    morningState.count += 1;
-    morningState.targetTs = nowTs + minutes * 60 * 1000;
-    saveMorningState();
-    morningRunning = true;
-    startMorningBtn.disabled = true;
-    morningTimerEl.textContent = mmss(morningState.targetTs - Date.now());
-    morningStatusEl.textContent = `טיימר רץ: ${minutes} דקות`;
+      morningInterval = setInterval(() => {
+        const left = morningState.targetTs - Date.now();
+        if (left <= 0) stopMorning();
+        else if (morningTimerEl) morningTimerEl.textContent = mmss(left);
+      }, 200);
+    }
+
+    if (showMorningBtn) {
+      showMorningBtn.addEventListener('click', () => {
+        if (morningCard) morningCard.style.display = 'block';
+        // אם תרצה להתחיל אוטומטית עם ההצגה, בטל את ההערה:
+        // startMorning(); startMorningBtn.style.display = 'none';
+      });
+    }
+
+    if (startMorningBtn) startMorningBtn.addEventListener('click', startMorning);
+
+    // אתחול בוקר
     updateMorningUI();
-
-    morningInterval = setInterval(() => {
-      const left = morningState.targetTs - Date.now();
-      if (left <= 0) stopMorning();
-      else morningTimerEl.textContent = mmss(left);
-    }, 200);
-  }
-
-  showMorningBtn.addEventListener('click', () => {
-    morningCard.style.display = 'block';
-  });
-
-  startMorningBtn.addEventListener('click', startMorning);
-
-  // אתחול מסך
-  updateMorningUI();
-  if (morningState.targetTs && morningState.targetTs > Date.now()) {
-    morningRunning = true;
-    startMorningBtn.disabled = true;
-    morningStatusEl.textContent = 'טיימר רץ';
-    morningInterval = setInterval(() => {
-      const left = morningState.targetTs - Date.now();
-      if (left <= 0) stopMorning();
-      else morningTimerEl.textContent = mmss(left);
-    }, 200);
-  } else {
-    morningTimerEl.textContent = mmss(MORNING_BASE * 60 * 1000);
-  }
-})();
+    if (morningState.targetTs && morningState.targetTs > Date.now()) {
+      morningRunning = true;
+      if (startMorningBtn) startMorningBtn.disabled = true;
+      if (morningStatus)   morningStatus.textContent = 'טיימר רץ';
+      morningInterval = setInterval(() => {
+        const left = morningState.targetTs - Date.now();
+        if (left <= 0) stopMorning();
+        else if (morningTimerEl) morningTimerEl.textContent = mmss(left);
+      }, 200);
+    } else if (morningTimerEl) {
+      morningTimerEl.textContent = mmss(MORNING_BASE * 60 * 1000);
+    }
+  })();
 })();
 </script>
 </body>
