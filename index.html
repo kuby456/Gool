@@ -58,7 +58,11 @@
     <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
   </div>
 </div>
-
+<!-- ציטוט/פתגם נגד עישון -->
+<div class="stat" id="quoteBox" style="margin-bottom:12px;">
+  <div id="quoteText">טוען פתגם…</div>
+  <div class="muted" id="quoteSource"></div>
+</div>
 <!-- כפתור חשיפה -->
 <div style="margin-top:20px; text-align:center;">
   <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
@@ -95,8 +99,8 @@
 <script>
 (() => {
   // ===== הגדרות טיימר ראשי =====
-  const BASE_MINUTES = 205;   // <<< שנה כאן את הבסיס שרצית
-  const INCREMENT    = 30;     // תוספת בכל הפעלה
+  const BASE_MINUTES = 205;   // בסיס דקות בתחילת היום
+  const INCREMENT    = 30;    // תוספת בכל הפעלה
   const LS_KEY       = 'mySimpleTimer';
 
   // אלמנטים
@@ -122,7 +126,7 @@
     totalSleepRemovedMin: 0,
     dailyCount: 0,
     lastPressTs: null,
-    baseMinSnapshot: BASE_MINUTES // צילום של בסיס הדקות האחרון
+    baseMinSnapshot: BASE_MINUTES
   });
 
   // טעינת מצב עם הגנה על שינוי בסיס
@@ -130,13 +134,10 @@
     try {
       const raw = localStorage.getItem(LS_KEY);
       let s = raw ? JSON.parse(raw) : defaultState();
-
-      // אם שינית את BASE_MINUTES מאז—לאפס ספירה ולהסתנכרן לבסיס החדש
       if (s.baseMinSnapshot !== BASE_MINUTES) {
         s = defaultState();
         s.baseMinSnapshot = BASE_MINUTES;
       }
-
       if (typeof s.dailyCount !== 'number') s.dailyCount = 0;
       if (typeof s.lastPressTs !== 'number') s.lastPressTs = null;
       return s;
@@ -193,7 +194,7 @@
     return BASE_MINUTES + INCREMENT * Math.max(0, state.pressCount);
   }
 
-  // הממוצע הקיים שלך: (זמן כולל פחות שינה) / מספר לחיצות
+  // הממוצע: (זמן כולל פחות שינה) / מספר לחיצות
   function updateAverage() {
     const n = state.pressCount;
     if (!state.firstPressTs || n === 0) {
@@ -249,6 +250,9 @@
     statusEl.textContent = `טיימר רץ: ${minutes} דקות`;
     updateUI();
 
+    // ציטוט חדש על כל התחלה
+    loadAntiSmokingQuote(true);
+
     tickInterval = setInterval(() => {
       const left = state.targetTs - Date.now();
       if (left <= 0) stopTimer();
@@ -289,6 +293,85 @@
   }
 
   updateUI();
+
+  // ===== ציטוטים נגד עישון עם "שקית" מסתובבת וזיכרון (Quotable) =====
+  const QUOTE_LS_BAG    = 'quotesBagSmoking';
+  const QUOTE_LS_CURSOR = 'quotesBagSmokingCursor';
+  const QUOTE_LS_TS     = 'quotesBagSmokingFetchedAt';
+  const QUOTE_BAG_TTL_HOURS = 48;  // נרענן שקית כל יומיים
+  const QUOTE_BAG_SIZE  = 80;      // עד 80 ציטוטים
+
+  function lsGet(k, def=null){ try{ return JSON.parse(localStorage.getItem(k)) ?? def; }catch{ return def; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+
+  function shuffle(arr){
+    for (let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  async function fetchSmokingBag() {
+    const all = [];
+    for (let page = 1; all.length < QUOTE_BAG_SIZE && page <= 3; page++) {
+      const url = `https://api.quotable.io/search/quotes?query=${encodeURIComponent('smoking OR "quit smoking" OR nicotine')}&limit=50&page=${page}&_=${Date.now()}`;
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) break;
+      const data = await r.json();
+      if (!data.results?.length) break;
+      all.push(...data.results.map(q => ({ id: q._id, text: `${q.content} — ${q.author}` })));
+      if (all.length >= (data.totalCount || Infinity)) break;
+    }
+    if (!all.length) throw new Error('no results');
+    return shuffle(all).slice(0, QUOTE_BAG_SIZE);
+  }
+
+  async function ensureBag() {
+    const ts = lsGet(QUOTE_LS_TS, 0);
+    const tooOld = (Date.now() - ts) > QUOTE_BAG_TTL_HOURS * 3600 * 1000;
+    let bag = lsGet(QUOTE_LS_BAG, null);
+    let cursor = lsGet(QUOTE_LS_CURSOR, 0);
+
+    if (!bag || !Array.isArray(bag) || bag.length === 0 || tooOld || cursor >= bag.length) {
+      try {
+        bag = await fetchSmokingBag();
+      } catch {
+        // פולבק: ננסה לפחות ציטוט אחד כללי
+        try {
+          const r2 = await fetch(`https://api.quotable.io/quotes/random?tags=health|inspirational&maxLength=160&_=${Date.now()}`, { cache:'no-store' });
+          const [q2] = await r2.json();
+          bag = [{ id: q2._id || String(Date.now()), text: `${q2.content} — ${q2.author}` }];
+        } catch {
+          bag = [{ id: 'local', text: 'נשימה עמוקה מרגיעה יותר מהצתה. כל דקה נוספת בלי סיגריה היא ניצחון קטן.' }];
+        }
+      }
+      cursor = 0;
+      lsSet(QUOTE_LS_BAG, bag);
+      lsSet(QUOTE_LS_TS, Date.now());
+      lsSet(QUOTE_LS_CURSOR, cursor);
+    }
+    return { bag, cursor };
+  }
+
+  async function loadAntiSmokingQuote(advance=true) {
+    const textEl = document.getElementById('quoteText');
+    const srcEl  = document.getElementById('quoteSource');
+    if (!textEl) return;
+
+    const { bag, cursor } = await ensureBag();
+    const q = bag[Math.min(cursor, bag.length - 1)];
+    textEl.textContent = q.text;
+    if (srcEl) srcEl.textContent = 'מקור: Quotable';
+
+    if (advance) {
+      const next = (cursor + 1) % bag.length;
+      lsSet(QUOTE_LS_CURSOR, next);
+    }
+  }
+
+  // הצג ציטוט בפתיחת הדף
+  loadAntiSmokingQuote(true);
 
   // ===== טיימר בוקר (IIFE נפרד) =====
   ;(() => {
@@ -367,8 +450,6 @@
     if (showMorningBtn) {
       showMorningBtn.addEventListener('click', () => {
         if (morningCard) morningCard.style.display = 'block';
-        // אם תרצה להתחיל אוטומטית עם ההצגה, בטל את ההערה:
-        // startMorning(); startMorningBtn.style.display = 'none';
       });
     }
 
