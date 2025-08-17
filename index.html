@@ -1,3 +1,4 @@
+להלן כל ה־HTML שלך ללא שינויי מבנה/‏CSS — רק הסקריפט הוחלף ל־JS תקין שמתאים לקוד: (בסיס 30 דק׳ + תוספת 5 דק׳ בכל לחיצה, ממוצע = זמן מהלחיצה הראשונה פחות סך השינה חלקי מספר הלחיצות, טעינת משפטים מ־quotes.json מאותה תיקייה)
 
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -54,35 +55,35 @@
   <div class="row" style="margin-top:10px;">
     <button id="startBtn">התחל טיימר</button>
   </div>
-<div class="card" id="morningTimerCard" style="display:none;">
-  <h1>⏰ טיימר בוקר</h1>
-  <div id="morningTimer" class="timer">10:00</div>
-  <div id="morningStatus" class="muted">מוכן להתחיל</div>
-  <div class="row" style="margin-top:10px;">
-    <button id="startMorningBtn">התחל טיימר בוקר</button>
+
+  <div class="card" id="morningTimerCard" style="display:none;">
+    <h1>⏰ טיימר בוקר</h1>
+    <div id="morningTimer" class="timer">10:00</div>
+    <div id="morningStatus" class="muted">מוכן להתחיל</div>
+    <div class="row" style="margin-top:10px;">
+      <button id="startMorningBtn">התחל טיימר בוקר</button>
+    </div>
+    <div class="stat">
+      <div><strong>מספר לחיצות בוקר:</strong> <span id="morningCount">0</span></div>
+      <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
+    </div>
   </div>
-  <div class="stat">
-    <div><strong>מספר לחיצות בוקר:</strong> <span id="morningCount">0</span></div>
-    <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
+
+  <div style="margin-top:20px; text-align:center;">
+    <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
+      הצג טיימר בוקר
+    </button>
   </div>
-</div>
-  
-  
-<!-- ציטוט/פתגם נגד עישון -->
-<!-- כפתור חשיפה -->
-<div style="margin-top:20px; text-align:center;">
-  <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
-    הצג טיימר בוקר
-  </button>
-</div>
+
   <div class="hob">
     <h1>משפט אקראי</h1>
-    <div id="quote">טוען את zinbin.json…</div>
+    <div id="quote">טוען את quotes.json…</div>
     <div class="row">
       <button id="nextBtn" disabled>תן לי משפט</button>
     </div>
-   <!-- אחרי -->
-<div id="quoteStatus" class="muted"></div></div>
+    <div id="quoteStatus" class="muted"></div>
+  </div>
+
   <div class="stat">
     <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
     <div><strong>אורך הטיימר הבא:</strong> <span id="nextLength">30 דקות</span></div>
@@ -93,7 +94,6 @@
     <div id="avgText" class="muted">—</div>
   </div>
 
-  <!-- ספירה שמתאפסת אחרי 3 שעות בלי הפעלה -->
   <div class="stat">
     <div><strong>כמה עישנתי היום:</strong> <span id="dailyCount">0</span></div>
     <div class="muted" id="dailyNote">הספירה מתאפסת אם עברו 3 שעות מאז הסיגריה האחרונה</div>
@@ -112,10 +112,11 @@
 
 <script>
 (() => {
-  // ===== הגדרות טיימר ראשי =====
-  const BASE_MINUTES = 265;   // <- שנה כאן אם תרצה בסיס אחר
-  const INCREMENT    = 30;    // <- שנה כאן את התוספת בכל הפעלה
+  // ===== הגדרות =====
+  const BASE_MINUTES = 30;   // בסיס הטיימר הראשון
+  const INCREMENT    = 5;    // תוספת לכל לחיצה
   const LS_KEY       = 'mySimpleTimer';
+  const JSON_URL     = 'quotes.json'; // קובץ ה-JSON באותה תיקייה
 
   // אלמנטים
   const timerEl       = document.getElementById('timer');
@@ -130,50 +131,21 @@
   const sleepInfoEl   = document.getElementById('sleepRemovedInfo');
   const dailyCountEl  = document.getElementById('dailyCount');
 
+  const showMorningBtn = document.getElementById('showMorningBtn');
+  const morningCard    = document.getElementById('morningTimerCard');
+  const morningTimerEl = document.getElementById('morningTimer');
+  const morningStatus  = document.getElementById('morningStatus');
+  const morningCountEl = document.getElementById('morningCount');
+  const morningNextEl  = document.getElementById('morningNext');
+  const startMorningBtn= document.getElementById('startMorningBtn');
+
+  const quoteEl    = document.getElementById('quote');
+  const quoteStatus= document.getElementById('quoteStatus');
+  const nextBtn    = document.getElementById('nextBtn');
+
   const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
 
-  // מצב ברירת מחדל
-  const defaultState = () => ({
-    pressCount: 0,
-    firstPressTs: null,
-    targetTs: null,
-    totalSleepRemovedMin: 0,
-    dailyCount: 0,
-    lastPressTs: null,
-    baseMinSnapshot: BASE_MINUTES
-  });
-
-  // טעינת מצב עם הגנה על שינוי בסיס
-  const loadState = () => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      let s = raw ? JSON.parse(raw) : defaultState();
-      if (s.baseMinSnapshot !== BASE_MINUTES) s = defaultState();
-      if (typeof s.dailyCount !== 'number') s.dailyCount = 0;
-      if (typeof s.lastPressTs !== 'number') s.lastPressTs = null;
-      return s;
-    } catch {
-      return defaultState();
-    }
-  };
-
-  let state = loadState();
-
-  const saveState = () => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
-  };
-
-  let running = false;
-  let tickInterval = null;
-
-  function checkResetAfterInactivity() {
-    if (!state.lastPressTs) return;
-    const now = Date.now();
-    if (now - state.lastPressTs >= THREE_HOURS_MS) {
-      state.dailyCount = 0;
-    }
-  }
-
+  // ===== עזרי זמן/תצוגה =====
   function mmss(ms) {
     const total = Math.max(0, Math.ceil(ms / 1000));
     const m = Math.floor(total / 60);
@@ -201,33 +173,64 @@
     return end - start;
   }
 
+  // ===== מצב ראשי =====
+  const defaultState = () => ({
+    pressCount: 0,
+    firstPressTs: null,
+    targetTs: null,
+    totalSleepRemovedMin: 0,
+    dailyCount: 0,
+    lastPressTs: null
+  });
+
+  const loadState = () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      const s = raw ? JSON.parse(raw) : defaultState();
+      // הגנות
+      if (typeof s.dailyCount !== 'number') s.dailyCount = 0;
+      if (typeof s.lastPressTs !== 'number') s.lastPressTs = null;
+      if (typeof s.totalSleepRemovedMin !== 'number') s.totalSleepRemovedMin = 0;
+      return s;
+    } catch {
+      return defaultState();
+    }
+  };
+
+  let state = loadState();
+
+  const saveState = () => {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  };
+
+  let running = false;
+  let tickInterval = null;
+
+  function checkResetAfterInactivity() {
+    if (!state.lastPressTs) return;
+    const now = Date.now();
+    if (now - state.lastPressTs >= THREE_HOURS_MS) {
+      state.dailyCount = 0;
+    }
+  }
+
   function nextTimerMinutes() {
     return BASE_MINUTES + INCREMENT * Math.max(0, state.pressCount);
   }
 
-  // הממוצע: (זמן כולל פחות שינה) / מספר לחיצות
+  // ===== ממוצע נדרש: (מהלחיצה הראשונה עד עכשיו – שינה) / כל הלחיצות =====
   function updateAverage() {
-  // ממוצע = (עבר מאז הלחיצה הראשונה - שינה) / כל הלחיצות, כולל הנוכחית
-  const n = state.pressCount;
-
-  if (!state.firstPressTs || n <= 0) {
-    avgTextEl.textContent = '—';
-    return;
+    const n = state.pressCount;
+    if (!state.firstPressTs || n <= 0) {
+      avgTextEl.textContent = '—';
+      return;
+    }
+    const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
+    const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
+    const avg         = adjustedMin / n;
+    avgTextEl.textContent = formatDurationFromMinutes(avg);
   }
 
-  const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
-  const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
-  const avg         = adjustedMin / n;
-
-  avgTextEl.textContent = formatDurationFromMinutes(avg);
-}
-
-  const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
-  const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
-  const avg         = adjustedMin / completedCount;
-
-  avgTextEl.textContent = formatDurationFromMinutes(avg);
-}
   function updateUI() {
     pressCountEl.textContent = state.pressCount;
     nextLengthEl.textContent = `${nextTimerMinutes()} דקות`;
@@ -257,7 +260,7 @@
 
     if (!state.firstPressTs) state.firstPressTs = nowTs;
 
-    // נחשב הפעלה כסיגריה
+    // לחיצה = התחלת סשן חדש
     state.pressCount += 1;
     state.dailyCount += 1;
     state.lastPressTs = nowTs;
@@ -291,33 +294,33 @@
     updateUI();
   });
 
-  // אתחול טיימר ראשי
-  checkResetAfterInactivity();
-  saveState();
+  // ===== אתחול מסודר =====
+  (function initMainTimer() {
+    checkResetAfterInactivity();
+    saveState();
 
-  if (state.targetTs && state.targetTs > Date.now()) {
-    running = true;
-    startBtn.disabled = true;
-    mainStatusEl.textContent = 'טיימר רץ';
-    tickInterval = setInterval(() => {
-      const left = state.targetTs - Date.now();
-      if (left <= 0) stopTimer();
-      else timerEl.textContent = mmss(left);
-      updateAverage();
-    }, 200);
-  } else {
-    timerEl.textContent = mmss(BASE_MINUTES * 60 * 1000);
-    mainStatusEl.textContent = 'מוכן להתחיל';
-  }
-
-  updateUI();
+    // אם לא רץ — להציג את *הטיימר הבא* לפי pressCount, לא 30 קשיח
+    const initialMinutes = nextTimerMinutes();
+    if (!state.targetTs || state.targetTs <= Date.now()) {
+      timerEl.textContent = mmss(initialMinutes * 60 * 1000);
+      mainStatusEl.textContent = 'מוכן להתחיל';
+    } else {
+      running = true;
+      startBtn.disabled = true;
+      mainStatusEl.textContent = 'טיימר רץ';
+      tickInterval = setInterval(() => {
+        const left = state.targetTs - Date.now();
+        if (left <= 0) stopTimer();
+        else timerEl.textContent = mmss(left);
+        updateAverage();
+      }, 200);
+    }
+    updateUI();
+  })();
 
   // ===== ציטוטים מתוך quotes.json =====
-  (() => {
-    const JSON_URL   = 'quotes.json'; // ודא שהקובץ באותה תיקייה של ה-HTML
-    const quoteEl    = document.getElementById('quote');
-    const statusEl   = document.getElementById('quoteStatus');
-    const nextBtn    = document.getElementById('nextBtn');
+  (function initQuotes() {
+    if (!quoteEl || !nextBtn) return;
 
     let quotes = [];
     let lastIndex = -1;
@@ -349,10 +352,10 @@
         const arr = Array.isArray(data) ? data : (Array.isArray(data.quotes) ? data.quotes : []);
         if(!arr.length) throw new Error('קובץ JSON ללא משפטים');
         quotes = arr;
-        statusEl.textContent = '';
+        quoteStatus.textContent = '';
       } catch(err){
-        console.error('שגיאה בטעינת JSON:', err);
-        statusEl.textContent = '⚠️ לא הצלחתי לטעון את quotes.json (בדוק נתיב/שרת/פורמט).';
+        console.warn('טעינת JSON נכשלה. אם פתחת file:// זה צפוי. שגיאה:', err);
+        quoteStatus.textContent = '⚠️ לא הצלחתי לטעון את quotes.json. ודא שהעמוד רץ משרת וששם הקובץ נכון.';
         quotes = ["גיבוי: כל צעד קטן הוא ניצחון."];
       } finally {
         nextBtn.disabled = false;
@@ -361,22 +364,16 @@
     }
 
     nextBtn.addEventListener('click', pickRandom);
-    document.addEventListener('DOMContentLoaded', loadQuotes);
+    loadQuotes(); // נטען מיד (הסקריפט בסוף ה-body)
   })();
 
-  // ===== טיימר בוקר =====
+  // ===== טיימר בוקר (אופציונלי) =====
   ;(() => {
+    if (!showMorningBtn) return;
+
     const MORNING_BASE = 10;
     const MORNING_INC  = 5;
     const LS_KEY_MORN  = 'morningTimerState';
-
-    const morningCard    = document.getElementById('morningTimerCard');
-    const showMorningBtn = document.getElementById('showMorningBtn');
-    const morningTimerEl = document.getElementById('morningTimer');
-    const morningStatus  = document.getElementById('morningStatus');
-    const morningCountEl = document.getElementById('morningCount');
-    const morningNextEl  = document.getElementById('morningNext');
-    const startMorningBtn= document.getElementById('startMorningBtn');
 
     let morningState   = { count: 0, targetTs: null };
     let morningRunning = false;
@@ -391,19 +388,12 @@
       try { localStorage.setItem(LS_KEY_MORN, JSON.stringify(morningState)); } catch {}
     }
 
-    function mmss(ms) {
-      const total = Math.max(0, Math.ceil(ms / 1000));
-      const m = Math.floor(total / 60);
-      const s = total % 60;
-      return `${m}:${String(s).padStart(2, '0')}`;
-    }
-
     function nextMorningMinutes() {
       return MORNING_BASE + MORNING_INC * morningState.count;
     }
 
     function updateMorningUI() {
-      if (morningCountEl) morningCountEl.textContent = morningState.count;
+      if (morningCountEl) morningCountEl.textContent = morningState.count || 0;
       if (morningNextEl)  morningNextEl.textContent  = `${nextMorningMinutes()} דקות`;
     }
 
@@ -439,24 +429,31 @@
     }
 
     showMorningBtn.addEventListener('click', () => { morningCard.style.display = 'block'; });
-    startMorningBtn.addEventListener('click', startMorning);
+    if (startMorningBtn) startMorningBtn.addEventListener('click', startMorning);
 
-    // אתחול בוקר
+    // אתחול
     updateMorningUI();
-    if (morningState.targetTs && morningState.targetTs > Date.now()) {
-      morningRunning = true;
-      startMorningBtn.disabled = true;
-      morningStatus.textContent = 'טיימר רץ';
-      morningInterval = setInterval(() => {
-        const left = morningState.targetTs - Date.now();
-        if (left <= 0) stopMorning();
-        else morningTimerEl.textContent = mmss(left);
-      }, 200);
-    } else {
-      morningTimerEl.textContent = mmss(MORNING_BASE * 60 * 1000);
+    if (morningTimerEl) {
+      if (morningState.targetTs && morningState.targetTs > Date.now()) {
+        morningRunning = true;
+        if (startMorningBtn) startMorningBtn.disabled = true;
+        if (morningStatus)   morningStatus.textContent = 'טיימר רץ';
+        morningInterval = setInterval(() => {
+          const left = morningState.targetTs - Date.now();
+          if (left <= 0) stopMorning();
+          else morningTimerEl.textContent = mmss(left);
+        }, 200);
+      } else {
+        morningTimerEl.textContent = mmss(MORNING_BASE * 60 * 1000);
+      }
     }
   })();
 })();
 </script>
 </body>
 </html>
+
+טיפ קטן: אם אתה פותח את הקובץ ישירות כ־file://, הדפדפן יחסום fetch ל־JSON. הרץ את העמוד דרך שרת מקומי (למשל npx serve) או כל שרת פשוט.
+
+מבוסס על הקובץ שהעלית (וה־JSON שלך):
+
