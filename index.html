@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -35,14 +36,21 @@
   }
   #addSleepBtn:hover { background: linear-gradient(92deg, #534bda 20%, #7a6be3 100%); }
   .muted2 { color: #75759b; font-size: 0.97em; margin-top: 7px; text-align: center; }
+  .hob{
+    padding: 30px 30px;
+    border: solid blue 5px;
+    border-radius: 30px;
+    margin-top: 10px;
+    background-color: #3668;
+  }
 </style>
 </head>
 <body>
 <div class="card">
   <h1>טיימר 30 דק׳ + 5 דק׳ בכל לחיצה</h1>
   <div id="timer" class="timer">30:00</div>
-  <div id="status" class="muted">מוכן להתחיל</div>
-
+  <div id="mainStatus" class="muted">מוכן להתחיל</div>
+  
   <div class="row" style="margin-top:10px;">
     <button id="startBtn">התחל טיימר</button>
   </div>
@@ -58,17 +66,23 @@
     <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
   </div>
 </div>
+  
+  
 <!-- ציטוט/פתגם נגד עישון -->
-<div class="stat" id="quoteBox" style="margin-bottom:12px;">
-  <div id="quoteText">טוען פתגם…</div>
-  <div class="muted" id="quoteSource"></div>
-</div>
 <!-- כפתור חשיפה -->
 <div style="margin-top:20px; text-align:center;">
   <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
     הצג טיימר בוקר
   </button>
 </div>
+  <div class="hob">
+    <h1>משפט אקראי</h1>
+    <div id="quote">טוען את zinbin.json…</div>
+    <div class="row">
+      <button id="nextBtn" disabled>תן לי משפט</button>
+    </div>
+   <!-- אחרי -->
+<div id="quoteStatus" class="muted"></div></div>
   <div class="stat">
     <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
     <div><strong>אורך הטיימר הבא:</strong> <span id="nextLength">30 דקות</span></div>
@@ -99,13 +113,13 @@
 <script>
 (() => {
   // ===== הגדרות טיימר ראשי =====
-  const BASE_MINUTES = 205;   // בסיס דקות בתחילת היום
-  const INCREMENT    = 30;    // תוספת בכל הפעלה
+  const BASE_MINUTES = 235;   // <- שנה כאן אם תרצה בסיס אחר
+  const INCREMENT    = 30;    // <- שנה כאן את התוספת בכל הפעלה
   const LS_KEY       = 'mySimpleTimer';
 
   // אלמנטים
   const timerEl       = document.getElementById('timer');
-  const statusEl      = document.getElementById('status');
+  const mainStatusEl  = document.getElementById('mainStatus');
   const startBtn      = document.getElementById('startBtn');
   const pressCountEl  = document.getElementById('pressCount');
   const nextLengthEl  = document.getElementById('nextLength');
@@ -134,10 +148,7 @@
     try {
       const raw = localStorage.getItem(LS_KEY);
       let s = raw ? JSON.parse(raw) : defaultState();
-      if (s.baseMinSnapshot !== BASE_MINUTES) {
-        s = defaultState();
-        s.baseMinSnapshot = BASE_MINUTES;
-      }
+      if (s.baseMinSnapshot !== BASE_MINUTES) s = defaultState();
       if (typeof s.dailyCount !== 'number') s.dailyCount = 0;
       if (typeof s.lastPressTs !== 'number') s.lastPressTs = null;
       return s;
@@ -223,7 +234,7 @@
     saveState();
     startBtn.disabled = false;
     timerEl.textContent = '00:00';
-    statusEl.textContent = 'הטיימר הסתיים';
+    mainStatusEl.textContent = 'הטיימר הסתיים';
   }
 
   function startTimer() {
@@ -247,11 +258,8 @@
     running = true;
     startBtn.disabled = true;
     timerEl.textContent = mmss(state.targetTs - Date.now());
-    statusEl.textContent = `טיימר רץ: ${minutes} דקות`;
+    mainStatusEl.textContent = `טיימר רץ: ${minutes} דקות`;
     updateUI();
-
-    // ציטוט חדש על כל התחלה
-    loadAntiSmokingQuote(true);
 
     tickInterval = setInterval(() => {
       const left = state.targetTs - Date.now();
@@ -280,7 +288,7 @@
   if (state.targetTs && state.targetTs > Date.now()) {
     running = true;
     startBtn.disabled = true;
-    statusEl.textContent = 'טיימר רץ';
+    mainStatusEl.textContent = 'טיימר רץ';
     tickInterval = setInterval(() => {
       const left = state.targetTs - Date.now();
       if (left <= 0) stopTimer();
@@ -289,91 +297,64 @@
     }, 200);
   } else {
     timerEl.textContent = mmss(BASE_MINUTES * 60 * 1000);
-    statusEl.textContent = 'מוכן להתחיל';
+    mainStatusEl.textContent = 'מוכן להתחיל';
   }
 
   updateUI();
 
-  // ===== ציטוטים נגד עישון עם "שקית" מסתובבת וזיכרון (Quotable) =====
-  const QUOTE_LS_BAG    = 'quotesBagSmoking';
-  const QUOTE_LS_CURSOR = 'quotesBagSmokingCursor';
-  const QUOTE_LS_TS     = 'quotesBagSmokingFetchedAt';
-  const QUOTE_BAG_TTL_HOURS = 48;  // נרענן שקית כל יומיים
-  const QUOTE_BAG_SIZE  = 80;      // עד 80 ציטוטים
+  // ===== ציטוטים מתוך quotes.json =====
+  (() => {
+    const JSON_URL   = 'quotes.json'; // ודא שהקובץ באותה תיקייה של ה-HTML
+    const quoteEl    = document.getElementById('quote');
+    const statusEl   = document.getElementById('quoteStatus');
+    const nextBtn    = document.getElementById('nextBtn');
 
-  function lsGet(k, def=null){ try{ return JSON.parse(localStorage.getItem(k)) ?? def; }catch{ return def; } }
-  function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+    let quotes = [];
+    let lastIndex = -1;
 
-  function shuffle(arr){
-    for (let i = arr.length - 1; i > 0; i--){
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
-
-  async function fetchSmokingBag() {
-    const all = [];
-    for (let page = 1; all.length < QUOTE_BAG_SIZE && page <= 3; page++) {
-      const url = `https://api.quotable.io/search/quotes?query=${encodeURIComponent('smoking OR "quit smoking" OR nicotine')}&limit=50&page=${page}&_=${Date.now()}`;
-      const r = await fetch(url, { cache: 'no-store' });
-      if (!r.ok) break;
-      const data = await r.json();
-      if (!data.results?.length) break;
-      all.push(...data.results.map(q => ({ id: q._id, text: `${q.content} — ${q.author}` })));
-      if (all.length >= (data.totalCount || Infinity)) break;
-    }
-    if (!all.length) throw new Error('no results');
-    return shuffle(all).slice(0, QUOTE_BAG_SIZE);
-  }
-
-  async function ensureBag() {
-    const ts = lsGet(QUOTE_LS_TS, 0);
-    const tooOld = (Date.now() - ts) > QUOTE_BAG_TTL_HOURS * 3600 * 1000;
-    let bag = lsGet(QUOTE_LS_BAG, null);
-    let cursor = lsGet(QUOTE_LS_CURSOR, 0);
-
-    if (!bag || !Array.isArray(bag) || bag.length === 0 || tooOld || cursor >= bag.length) {
-      try {
-        bag = await fetchSmokingBag();
-      } catch {
-        // פולבק: ננסה לפחות ציטוט אחד כללי
-        try {
-          const r2 = await fetch(`https://api.quotable.io/quotes/random?tags=health|inspirational&maxLength=160&_=${Date.now()}`, { cache:'no-store' });
-          const [q2] = await r2.json();
-          bag = [{ id: q2._id || String(Date.now()), text: `${q2.content} — ${q2.author}` }];
-        } catch {
-          bag = [{ id: 'local', text: 'נשימה עמוקה מרגיעה יותר מהצתה. כל דקה נוספת בלי סיגריה היא ניצחון קטן.' }];
-        }
+    function toText(item){
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object') {
+        const txt = item.text || item.quote || item.q || item.content;
+        const author = item.author || item.by || '';
+        return (txt ? txt : JSON.stringify(item)) + (author ? ` — ${author}` : '');
       }
-      cursor = 0;
-      lsSet(QUOTE_LS_BAG, bag);
-      lsSet(QUOTE_LS_TS, Date.now());
-      lsSet(QUOTE_LS_CURSOR, cursor);
+      return String(item);
     }
-    return { bag, cursor };
-  }
 
-  async function loadAntiSmokingQuote(advance=true) {
-    const textEl = document.getElementById('quoteText');
-    const srcEl  = document.getElementById('quoteSource');
-    if (!textEl) return;
-
-    const { bag, cursor } = await ensureBag();
-    const q = bag[Math.min(cursor, bag.length - 1)];
-    textEl.textContent = q.text;
-    if (srcEl) srcEl.textContent = 'מקור: Quotable';
-
-    if (advance) {
-      const next = (cursor + 1) % bag.length;
-      lsSet(QUOTE_LS_CURSOR, next);
+    function pickRandom(){
+      if(!quotes.length) return;
+      let i;
+      do { i = Math.floor(Math.random()*quotes.length); }
+      while (quotes.length > 1 && i === lastIndex);
+      lastIndex = i;
+      quoteEl.textContent = toText(quotes[i]);
     }
-  }
 
-  // הצג ציטוט בפתיחת הדף
-  loadAntiSmokingQuote(true);
+    async function loadQuotes(){
+      try{
+        const res = await fetch(JSON_URL, { cache:'no-store' });
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : (Array.isArray(data.quotes) ? data.quotes : []);
+        if(!arr.length) throw new Error('קובץ JSON ללא משפטים');
+        quotes = arr;
+        statusEl.textContent = '';
+      } catch(err){
+        console.error('שגיאה בטעינת JSON:', err);
+        statusEl.textContent = '⚠️ לא הצלחתי לטעון את quotes.json (בדוק נתיב/שרת/פורמט).';
+        quotes = ["גיבוי: כל צעד קטן הוא ניצחון."];
+      } finally {
+        nextBtn.disabled = false;
+        pickRandom();
+      }
+    }
 
-  // ===== טיימר בוקר (IIFE נפרד) =====
+    nextBtn.addEventListener('click', pickRandom);
+    document.addEventListener('DOMContentLoaded', loadQuotes);
+  })();
+
+  // ===== טיימר בוקר =====
   ;(() => {
     const MORNING_BASE = 10;
     const MORNING_INC  = 5;
@@ -447,26 +428,21 @@
       }, 200);
     }
 
-    if (showMorningBtn) {
-      showMorningBtn.addEventListener('click', () => {
-        if (morningCard) morningCard.style.display = 'block';
-      });
-    }
-
-    if (startMorningBtn) startMorningBtn.addEventListener('click', startMorning);
+    showMorningBtn.addEventListener('click', () => { morningCard.style.display = 'block'; });
+    startMorningBtn.addEventListener('click', startMorning);
 
     // אתחול בוקר
     updateMorningUI();
     if (morningState.targetTs && morningState.targetTs > Date.now()) {
       morningRunning = true;
-      if (startMorningBtn) startMorningBtn.disabled = true;
-      if (morningStatus)   morningStatus.textContent = 'טיימר רץ';
+      startMorningBtn.disabled = true;
+      morningStatus.textContent = 'טיימר רץ';
       morningInterval = setInterval(() => {
         const left = morningState.targetTs - Date.now();
         if (left <= 0) stopMorning();
-        else if (morningTimerEl) morningTimerEl.textContent = mmss(left);
+        else morningTimerEl.textContent = mmss(left);
       }, 200);
-    } else if (morningTimerEl) {
+    } else {
       morningTimerEl.textContent = mmss(MORNING_BASE * 60 * 1000);
     }
   })();
