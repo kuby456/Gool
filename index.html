@@ -1,4 +1,3 @@
-להלן כל ה־HTML שלך ללא שינויי מבנה/‏CSS — רק הסקריפט הוחלף ל־JS תקין שמתאים לקוד: (בסיס 30 דק׳ + תוספת 5 דק׳ בכל לחיצה, ממוצע = זמן מהלחיצה הראשונה פחות סך השינה חלקי מספר הלחיצות, טעינת משפטים מ־quotes.json מאותה תיקייה)
 
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -55,35 +54,35 @@
   <div class="row" style="margin-top:10px;">
     <button id="startBtn">התחל טיימר</button>
   </div>
-
-  <div class="card" id="morningTimerCard" style="display:none;">
-    <h1>⏰ טיימר בוקר</h1>
-    <div id="morningTimer" class="timer">10:00</div>
-    <div id="morningStatus" class="muted">מוכן להתחיל</div>
-    <div class="row" style="margin-top:10px;">
-      <button id="startMorningBtn">התחל טיימר בוקר</button>
-    </div>
-    <div class="stat">
-      <div><strong>מספר לחיצות בוקר:</strong> <span id="morningCount">0</span></div>
-      <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
-    </div>
+<div class="card" id="morningTimerCard" style="display:none;">
+  <h1>⏰ טיימר בוקר</h1>
+  <div id="morningTimer" class="timer">10:00</div>
+  <div id="morningStatus" class="muted">מוכן להתחיל</div>
+  <div class="row" style="margin-top:10px;">
+    <button id="startMorningBtn">התחל טיימר בוקר</button>
   </div>
-
-  <div style="margin-top:20px; text-align:center;">
-    <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
-      הצג טיימר בוקר
-    </button>
+  <div class="stat">
+    <div><strong>מספר לחיצות בוקר:</strong> <span id="morningCount">0</span></div>
+    <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
   </div>
-
+</div>
+  
+  
+<!-- ציטוט/פתגם נגד עישון -->
+<!-- כפתור חשיפה -->
+<div style="margin-top:20px; text-align:center;">
+  <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
+    הצג טיימר בוקר
+  </button>
+</div>
   <div class="hob">
     <h1>משפט אקראי</h1>
-    <div id="quote">טוען את quotes.json…</div>
+    <div id="quote">טוען את zinbin.json…</div>
     <div class="row">
       <button id="nextBtn" disabled>תן לי משפט</button>
     </div>
-    <div id="quoteStatus" class="muted"></div>
-  </div>
-
+   <!-- אחרי -->
+<div id="quoteStatus" class="muted"></div></div>
   <div class="stat">
     <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
     <div><strong>אורך הטיימר הבא:</strong> <span id="nextLength">30 דקות</span></div>
@@ -94,6 +93,7 @@
     <div id="avgText" class="muted">—</div>
   </div>
 
+  <!-- ספירה שמתאפסת אחרי 3 שעות בלי הפעלה -->
   <div class="stat">
     <div><strong>כמה עישנתי היום:</strong> <span id="dailyCount">0</span></div>
     <div class="muted" id="dailyNote">הספירה מתאפסת אם עברו 3 שעות מאז הסיגריה האחרונה</div>
@@ -111,12 +111,12 @@
 </div>
 
 <script>
-(() => {
+יאללה—הנה סקריפט מלא (JS בלבד) שמסדר את הכול:(() => {
   // ===== הגדרות =====
-  const BASE_MINUTES = 30;   // בסיס הטיימר הראשון
-  const INCREMENT    = 5;    // תוספת לכל לחיצה
+  const BASE_MINUTES = 265;   // בסיס הטיימר הראשון
+  const INCREMENT    = 30;    // תוספת לכל לחיצה
   const LS_KEY       = 'mySimpleTimer';
-  const JSON_URL     = 'quotes.json'; // קובץ ה-JSON באותה תיקייה
+  const JSON_URL     = 'zinbin.json'; // קובץ ה-JSON באותה תיקייה
 
   // אלמנטים
   const timerEl       = document.getElementById('timer');
@@ -180,17 +180,18 @@
     targetTs: null,
     totalSleepRemovedMin: 0,
     dailyCount: 0,
-    lastPressTs: null
+    lastPressTs: null,
+    baseMinSnapshot: BASE_MINUTES
   });
 
   const loadState = () => {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      const s = raw ? JSON.parse(raw) : defaultState();
-      // הגנות
+      let s = raw ? JSON.parse(raw) : defaultState();
+      // אם שינית BASE_MINUTES – מאפס כדי שלא יבלגן את ההיסטוריה
+      if (s.baseMinSnapshot !== BASE_MINUTES) s = defaultState();
       if (typeof s.dailyCount !== 'number') s.dailyCount = 0;
       if (typeof s.lastPressTs !== 'number') s.lastPressTs = null;
-      if (typeof s.totalSleepRemovedMin !== 'number') s.totalSleepRemovedMin = 0;
       return s;
     } catch {
       return defaultState();
@@ -218,9 +219,9 @@
     return BASE_MINUTES + INCREMENT * Math.max(0, state.pressCount);
   }
 
-  // ===== ממוצע נדרש: (מהלחיצה הראשונה עד עכשיו – שינה) / כל הלחיצות =====
+  // ===== ממוצע כנדרש: (מהלחיצה הראשונה עד עכשיו – שינה) / כל הלחיצות =====
   function updateAverage() {
-    const n = state.pressCount;
+    const n = state.pressCount; // כולל הלחיצה הנוכחית אם טיימר רץ
     if (!state.firstPressTs || n <= 0) {
       avgTextEl.textContent = '—';
       return;
@@ -260,7 +261,7 @@
 
     if (!state.firstPressTs) state.firstPressTs = nowTs;
 
-    // לחיצה = התחלת סשן חדש
+    // לחיצה = “סיגריה”/סשן חדש
     state.pressCount += 1;
     state.dailyCount += 1;
     state.lastPressTs = nowTs;
@@ -299,7 +300,7 @@
     checkResetAfterInactivity();
     saveState();
 
-    // אם לא רץ — להציג את *הטיימר הבא* לפי pressCount, לא 30 קשיח
+    // להציג מההתחלה את *הטיימר הבא* בפועל (לפי pressCount), לא 30:00 קשיח
     const initialMinutes = nextTimerMinutes();
     if (!state.targetTs || state.targetTs <= Date.now()) {
       timerEl.textContent = mmss(initialMinutes * 60 * 1000);
@@ -318,7 +319,7 @@
     updateUI();
   })();
 
-  // ===== ציטוטים מתוך quotes.json =====
+  // ===== ציטוטים מתוך zinbin.json =====
   (function initQuotes() {
     if (!quoteEl || !nextBtn) return;
 
@@ -355,7 +356,7 @@
         quoteStatus.textContent = '';
       } catch(err){
         console.warn('טעינת JSON נכשלה. אם פתחת file:// זה צפוי. שגיאה:', err);
-        quoteStatus.textContent = '⚠️ לא הצלחתי לטעון את quotes.json. ודא שהעמוד רץ משרת וששם הקובץ נכון.';
+        quoteStatus.textContent = '⚠️ לא הצלחתי לטעון את zinbin.json. ודא שהעמוד רץ משרת וששם הקובץ נכון.';
         quotes = ["גיבוי: כל צעד קטן הוא ניצחון."];
       } finally {
         nextBtn.disabled = false;
@@ -364,10 +365,11 @@
     }
 
     nextBtn.addEventListener('click', pickRandom);
-    loadQuotes(); // נטען מיד (הסקריפט בסוף ה-body)
+    // נריץ מיד כי הסקריפט בסוף ה-body
+    loadQuotes();
   })();
 
-  // ===== טיימר בוקר (אופציונלי) =====
+  // ===== טיימר בוקר (אופציונלי, בלי קשר לממוצע הראשי) =====
   ;(() => {
     if (!showMorningBtn) return;
 
@@ -452,8 +454,3 @@
 </script>
 </body>
 </html>
-
-טיפ קטן: אם אתה פותח את הקובץ ישירות כ־file://, הדפדפן יחסום fetch ל־JSON. הרץ את העמוד דרך שרת מקומי (למשל npx serve) או כל שרת פשוט.
-
-מבוסס על הקובץ שהעלית (וה־JSON שלך):
-
