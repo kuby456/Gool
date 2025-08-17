@@ -113,7 +113,7 @@
 <script>
 (() => {
   // ===== הגדרות טיימר ראשי =====
-  const BASE_MINUTES = 235;   // <- שנה כאן אם תרצה בסיס אחר
+  const BASE_MINUTES = 265;   // <- שנה כאן אם תרצה בסיס אחר
   const INCREMENT    = 30;    // <- שנה כאן את התוספת בכל הפעלה
   const LS_KEY       = 'mySimpleTimer';
 
@@ -207,17 +207,27 @@
 
   // הממוצע: (זמן כולל פחות שינה) / מספר לחיצות
   function updateAverage() {
-    const n = state.pressCount;
-    if (!state.firstPressTs || n === 0) {
-      avgTextEl.textContent = '—';
-      return;
-    }
-    const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
-    const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
-    const avg         = adjustedMin / n;
-    avgTextEl.textContent = formatDurationFromMinutes(avg);
+  // ממוצע = (עבר מאז הלחיצה הראשונה - שינה) / כל הלחיצות, כולל הנוכחית
+  const n = state.pressCount;
+
+  if (!state.firstPressTs || n <= 0) {
+    avgTextEl.textContent = '—';
+    return;
   }
 
+  const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
+  const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
+  const avg         = adjustedMin / n;
+
+  avgTextEl.textContent = formatDurationFromMinutes(avg);
+}
+
+  const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
+  const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
+  const avg         = adjustedMin / completedCount;
+
+  avgTextEl.textContent = formatDurationFromMinutes(avg);
+}
   function updateUI() {
     pressCountEl.textContent = state.pressCount;
     nextLengthEl.textContent = `${nextTimerMinutes()} דקות`;
