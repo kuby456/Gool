@@ -111,8 +111,8 @@
 <script>
 (() => {
   // ===== הגדרות =====
-  const BASE_MINUTES = 30;   // בסיס הטיימר הראשון
-  const INCREMENT    = 5;    // תוספת לכל לחיצה
+  const BASE_MINUTES = 265;   // בסיס הטיימר הראשון
+  const INCREMENT    = 30;    // תוספת לכל לחיצה
   const LS_KEY       = 'mySimpleTimer';
   const JSON_URL     = 'quotes.json'; // קובץ ה-JSON באותה תיקייה
 
@@ -369,8 +369,8 @@
   ;(() => {
     if (!showMorningBtn) return;
 
-    const MORNING_BASE = 10;
-    const MORNING_INC  = 5;
+    const MORNING_BASE = 30;
+    const MORNING_INC  = 15;
     const LS_KEY_MORN  = 'morningTimerState';
 
     let morningState   = { count: 0, targetTs: null };
