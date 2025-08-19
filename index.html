@@ -42,20 +42,9 @@
     margin-top: 10px;
     background-color: #3668;
   }
-  .wrap { text-align:center; border: solid blue 3px; padding: 10px 10px; border-radius: 5%;}
-  #btn { font:600 18px system-ui; padding:14px 18px; border:0; border-radius:12px; background:#22c55e; color:#07130a; cursor:pointer; margin-bottom:20px; }
-  .num { font-size:40px; margin:10px 0; }
-
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <button id="btn">עישנתי עכשיו</button>
-    <div>מספר סיגריות:</div>
-    <div id="count" class="num">0</div>
-    <div>ממוצע (פחות 8ש׳ לכל 24ש׳ מלאות):</div>
-    <div id="avg" class="num">00:00:00</div>
-  </div>
 <div class="card">
   <h1>טיימר 30 דק׳ + 5 דק׳ בכל לחיצה</h1>
   <div id="timer" class="timer">30:00</div>
@@ -458,66 +447,6 @@
       }
     }
   })();
-})();
-  
-  (() => {
-  const SLEEP_HOURS = 8;
-  const MS_SEC = 1000, MS_MIN = 60_000, MS_HOUR = 3_600_000, MS_DAY = 86_400_000;
-
-  const K_START = 'avg_start_ts';
-  const K_COUNT = 'avg_clicks';
-
-  const btn = document.getElementById('btn');
-  const countEl = document.getElementById('count');
-  const avgEl = document.getElementById('avg');
-
-  const getStart = () => Number(localStorage.getItem(K_START) || 0);
-  const getCount = () => Number(localStorage.getItem(K_COUNT) || 0);
-  const setStart = v => localStorage.setItem(K_START, String(v));
-  const setCount = v => localStorage.setItem(K_COUNT, String(v));
-
-  // מציג שעות:דקות:שניות
-  function fmtHMS(ms) {
-    if (ms < 0) ms = 0;
-    const totalSec = Math.floor(ms / MS_SEC);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  }
-
-  function computeAvgMs() {
-    const start = getStart();
-    const count = getCount();
-    if (!start || !count) return 0;
-
-    const elapsed = Date.now() - start;
-
-    // כמה ימים מלאים עברו
-    const fullDays = Math.floor(elapsed / MS_DAY);
-    const deduct = fullDays * SLEEP_HOURS * MS_HOUR;
-
-    const net = Math.max(0, elapsed - deduct);
-    return Math.floor(net / count);
-  }
-
-  function render() {
-    countEl.textContent = getCount();
-    avgEl.textContent = fmtHMS(computeAvgMs());
-  }
-
-  btn.addEventListener('click', () => {
-    if (!getStart()) {
-      setStart(Date.now());
-      setCount(1);
-    } else {
-      setCount(getCount() + 1);
-    }
-    render();
-  });
-
-  render();
-  setInterval(render, MS_MIN);
 })();
 </script>
 </body>
