@@ -1,563 +1,96 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>טיימר עם חישוב ממוצע ללא שינה</title>
-<style>
-  body { font-family: Arial, sans-serif; background:#f5f5f5; padding:24px; text-align:center; }
-  .card { background:#fff; padding:20px; border-radius:14px; margin:0 auto; max-width:420px; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
-  h1 { margin:0 0 10px; font-size:22px; }
-  .timer { font-size:56px; margin:8px 0; }
-  .row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  button { cursor:pointer; padding:10px 16px; border:none; border-radius:10px; font-size:16px; }
-  #startBtn { background:#2f7d32; color:white; }
-  #addSleepBtn { background:#ff9800; color:white; }
-  .stat { background:#fafafa; border:1px solid #eee; border-radius:10px; padding:10px; margin-top:12px; font-size:14px; }
-  .muted { color:#888; }
-  label { font-size:1em; margin-left:8px; }
-  input[type="time"] { padding:5px; font-size:0.95em; }
-  .stat2 {
-    background: #f9f9fb; border: 1px solid #d3d3e7; border-radius: 10px;
-    padding: 22px 18px 16px 18px; box-shadow: 0 2px 8px rgba(90,100,120,0.06);
-    max-width: 400px; direction: rtl; font-family: 'Heebo', Arial, sans-serif;
-    margin: 38px auto 0 auto; display: flex; flex-direction: column; align-items: center;
-  }
-  .stat2 > div:first-child { font-size: 1.12em; color: #272752; margin-bottom: 10px; font-weight: 600; text-align: center; }
-  .row2 { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; }
-  .row2 label { font-size: 1em; color: #38387a; display: flex; align-items: center; gap: 4px; }
-  .row2 input[type="time"] { border: 1px solid #b8b8d1; border-radius: 6px; padding: 4px 8px; font-size: 1em; background: #fff; color: #2e2e47; outline: none; transition: border 0.2s; }
-  .row2 input[type="time"]:focus { border-color: #6c63ff; }
-  #addSleepBtn {
-    background: linear-gradient(92deg, #6c63ff 20%, #8f7cff 100%);
-    color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 1em; cursor: pointer; font-weight: 500;
-    transition: background 0.2s, box-shadow 0.2s; box-shadow: 0 1px 4px rgba(80,80,120,0.07);
-  }
-  #addSleepBtn:hover { background: linear-gradient(92deg, #534bda 20%, #7a6be3 100%); }
-  .muted2 { color: #75759b; font-size: 0.97em; margin-top: 7px; text-align: center; }
-  .hob{
-    padding: 30px 30px;
-    border: solid blue 5px;
-    border-radius: 30px;
-    margin-top: 10px;
-    background-color: #3668;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>טיימר אישי</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1020;
+      color: #eaf0ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 20px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      background: #6ea8fe;
+      color: white;
+      cursor: pointer;
+    }
+    .display {
+      font-size: 22px;
+      background: #121734;
+      padding: 20px;
+      border-radius: 12px;
+      width: 280px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-<div class="card">
-  <h1>טיימר 30 דק׳ + 5 דק׳ בכל לחיצה</h1>
-  <div id="timer" class="timer">30:00</div>
-  <div id="mainStatus" class="muted">מוכן להתחיל</div>
-  <div class="stat" id="settingsCard">
-  <div><strong>הגדרות טיימר</strong></div>
-  <div class="row" style="margin-top:10px;">
-    <label>זמן בסיס (דקות):
-      <input id="cfgBaseMin" type="number" min="0" step="1" style="width:90px">
-    </label>
-    <label>תוספת לכל לחיצה (דקות):
-      <input id="cfgIncMin" type="number" min="0" step="1" style="width:90px">
-    </label>
-    <button id="cfgSaveBtn" style="background:#4caf50;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer">
-      שמור
-    </button>
-  </div>
-  <div class="muted" id="cfgStatus" style="margin-top:6px;">ההגדרות נשמרות אוטומטית.</div>
-</div>
-  
-  <div class="row" style="margin-top:10px;">
-    <button id="startBtn">התחל טיימר</button>
+  <h2>⏳ טיימר אישי</h2>
+
+  <label>כמה דקות להפעיל?
+    <input type="number" id="minutes" placeholder="לדוגמה: 120">
+  </label>
+  <button onclick="startTimer()">הפעל טיימר</button>
+
+  <div class="display" id="info">
+    עדיין לא הופעל טיימר
   </div>
 
-  <div class="card" id="morningTimerCard" style="display:none;">
-    <h1>⏰ טיימר בוקר</h1>
-    <div id="morningTimer" class="timer">10:00</div>
-    <div id="morningStatus" class="muted">מוכן להתחיל</div>
-    <div class="row" style="margin-top:10px;">
-      <button id="startMorningBtn">התחל טיימר בוקר</button>
-    </div>
-    <div class="stat">
-      <div><strong>מספר לחיצות בוקר:</strong> <span id="morningCount">0</span></div>
-      <div><strong>הטיימר הבא:</strong> <span id="morningNext">10 דקות</span></div>
-    </div>
-  </div>
+  <script>
+    let endTime, timerInterval;
 
-  <div style="margin-top:20px; text-align:center;">
-    <button id="showMorningBtn" style="background:#3f51b5; color:#fff; padding:8px 16px; border:none; border-radius:6px; cursor:pointer;">
-      הצג טיימר בוקר
-    </button>
-  </div>
+    function startTimer() {
+      clearInterval(timerInterval);
 
-  <div class="hob">
-    <h1>משפט אקראי</h1>
-    <div id="quote">טוען את quotes.json…</div>
-    <div class="row">
-      <button id="nextBtn" disabled>תן לי משפט</button>
-    </div>
-    <div id="quoteStatus" class="muted"></div>
-  </div>
-
-  <div class="stat">
-    <div><strong>מספר לחיצות:</strong> <span id="pressCount">0</span></div>
-    <div><strong>אורך הטיימר הבא:</strong> <span id="nextLength">30 דקות</span></div>
-  </div>
-   
-
-  <div class="stat">
-    <div><strong>הממוצע שלך (ללא שינה):</strong></div>
-    <div id="avgText" class="muted">—</div>
-  </div>
-
-  <div class="stat">
-    <div><strong>כמה עישנתי היום:</strong> <span id="dailyCount">0</span></div>
-    <div class="muted" id="dailyNote">הספירה מתאפסת אם עברו 3 שעות מאז הסיגריה האחרונה</div>
-  </div>
-
-  <div class="stat2">
-    <div><strong>הוספת זמן שינה להסרה מהממוצע</strong></div>
-    <div class="row2" style="margin-top:8px;">
-      <label>נרדמתי: <input type="time" id="sleepStart" value="23:30"></label>
-      <label>התעוררתי: <input type="time" id="sleepEnd" value="07:30"></label>
-      <button id="addSleepBtn">הוסף שינה</button>
-    </div>
-    <div id="sleepRemovedInfo" class="muted2" style="margin-top:6px;">סה״כ שינה שהוסרה: 0 דקות</div>
-  </div>
-<script>
-(() => {
-  // ===== מפתחות אחסון =====
-  const LS_KEY        = 'mySimpleTimer';
-  const LS_CFG_MAIN   = 'timerConfig_v1';
-  const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-  const JSON_URL      = 'quotes.json';
-
-  // ===== קונפיג ראשי (נשמר ב-localStorage) =====
-  function loadMainConfig() {
-    try {
-      const j = JSON.parse(localStorage.getItem(LS_CFG_MAIN));
-      return {
-        baseMin: Number.isFinite(j?.baseMin) ? j.baseMin : 30,  // ברירת מחדל: 30
-        incMin:  Number.isFinite(j?.incMin)  ? j.incMin  : 5   // ברירת מחדל: 5
-      };
-    } catch {
-      return { baseMin: 30, incMin: 5 };
-    }
-  }
-  function saveMainConfig(cfg) {
-    try { localStorage.setItem(LS_CFG_MAIN, JSON.stringify(cfg)); } catch {}
-  }
-  let CFG_MAIN = loadMainConfig();
-
-  // ===== אלמנטים =====
-  const timerEl       = document.getElementById('timer');
-  const mainStatusEl  = document.getElementById('mainStatus');
-  const startBtn      = document.getElementById('startBtn');
-  const pressCountEl  = document.getElementById('pressCount');
-  const nextLengthEl  = document.getElementById('nextLength');
-  const avgTextEl     = document.getElementById('avgText');
-  const sleepStartInp = document.getElementById('sleepStart');
-  const sleepEndInp   = document.getElementById('sleepEnd');
-  const addSleepBtn   = document.getElementById('addSleepBtn');
-  const sleepInfoEl   = document.getElementById('sleepRemovedInfo');
-  const dailyCountEl  = document.getElementById('dailyCount');
-
-  // הגדרות (UI) – אם הוספת ב-HTML
-  const cfgBaseInp  = document.getElementById('cfgBaseMin');
-  const cfgIncInp   = document.getElementById('cfgIncMin');
-  const cfgSaveBtn  = document.getElementById('cfgSaveBtn');
-  const cfgStatusEl = document.getElementById('cfgStatus');
-
-  // טיימר בוקר
-  const showMorningBtn = document.getElementById('showMorningBtn');
-  const morningCard    = document.getElementById('morningTimerCard');
-  const morningTimerEl = document.getElementById('morningTimer');
-  const morningStatus  = document.getElementById('morningStatus');
-  const morningCountEl = document.getElementById('morningCount');
-  const morningNextEl  = document.getElementById('morningNext');
-  const startMorningBtn= document.getElementById('startMorningBtn');
-
-  // ציטוטים
-  const quoteEl    = document.getElementById('quote');
-  const quoteStatus= document.getElementById('quoteStatus');
-  const nextBtn    = document.getElementById('nextBtn');
-
-  // ===== עזרי זמן/תצוגה =====
-  function mmss(ms) {
-    const total = Math.max(0, Math.ceil(ms / 1000));
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  }
-  function formatDurationFromMinutes(minsFloat) {
-    if (!isFinite(minsFloat) || minsFloat <= 0) return "—";
-    const totalMinutes = Math.round(minsFloat);
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    return h > 0 ? `${h} ש׳ ${m} דק׳` : `${m} דק׳`;
-  }
-  function parseHHMMtoMinutes(hhmm) {
-    const [h, m] = hhmm.split(':').map(Number);
-    return h * 60 + m;
-  }
-  function calcSleepDurationMin(startHHMM, endHHMM) {
-    let start = parseHHMMtoMinutes(startHHMM);
-    let end = parseHHMMtoMinutes(endHHMM);
-    if (end < start) end += 1440; // חוצה חצות
-    return end - start;
-  }
-
-  // ===== מצב ראשי =====
-  const defaultState = () => ({
-    pressCount: 0,
-    firstPressTs: null,
-    targetTs: null,
-    totalSleepRemovedMin: 0,
-    dailyCount: 0,
-    lastPressTs: null
-  });
-
-  const loadState = () => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      const s = raw ? JSON.parse(raw) : defaultState();
-      if (typeof s.dailyCount !== 'number') s.dailyCount = 0;
-      if (typeof s.lastPressTs !== 'number') s.lastPressTs = null;
-      if (typeof s.totalSleepRemovedMin !== 'number') s.totalSleepRemovedMin = 0;
-      return s;
-    } catch {
-      return defaultState();
-    }
-  };
-
-  let state = loadState();
-  const saveState = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {} };
-
-  let running = false;
-  let tickInterval = null;
-
-  function checkResetAfterInactivity() {
-    if (!state.lastPressTs) return;
-    const now = Date.now();
-    if (now - state.lastPressTs >= THREE_HOURS_MS) {
-      state.dailyCount = 0;
-    }
-  }
-
-  // חישוב זמן הטיימר הבא לפי קונפיג דינמי
-  function nextTimerMinutes() {
-    const base = Math.max(0, Math.round(CFG_MAIN.baseMin));
-    const inc  = Math.max(0, Math.round(CFG_MAIN.incMin));
-    return base + inc * Math.max(0, state.pressCount);
-  }
-
-  // ממוצע ללא שינה
-  function updateAverage() {
-    const n = state.pressCount;
-    if (!state.firstPressTs || n <= 0) {
-      avgTextEl && (avgTextEl.textContent = '—');
-      return;
-    }
-    const elapsedMin  = (Date.now() - state.firstPressTs) / 60000;
-    const adjustedMin = Math.max(0, elapsedMin - state.totalSleepRemovedMin);
-    const avg         = adjustedMin / n;
-    avgTextEl && (avgTextEl.textContent = formatDurationFromMinutes(avg));
-  }
-
-  function updateUI() {
-    pressCountEl && (pressCountEl.textContent = state.pressCount);
-    nextLengthEl  && (nextLengthEl.textContent = `${nextTimerMinutes()} דקות`);
-    sleepInfoEl   && (sleepInfoEl.textContent  = `סה״כ שינה שהוסרה: ${state.totalSleepRemovedMin} דקות`);
-    dailyCountEl  && (dailyCountEl.textContent = state.dailyCount);
-    updateAverage();
-  }
-
-  function stopTimer() {
-    running = false;
-    clearInterval(tickInterval);
-    tickInterval = null;
-    state.targetTs = null;
-    saveState();
-    startBtn && (startBtn.disabled = false);
-    timerEl  && (timerEl.textContent = '00:00');
-    mainStatusEl && (mainStatusEl.textContent = 'הטיימר הסתיים');
-  }
-
-  function startTimer() {
-    if (running) return;
-    checkResetAfterInactivity();
-
-    const nowTs   = Date.now();
-    const minutes = nextTimerMinutes();
-
-    if (!state.firstPressTs) state.firstPressTs = nowTs;
-
-    state.pressCount += 1;
-    state.dailyCount += 1;
-    state.lastPressTs = nowTs;
-
-    state.targetTs = nowTs + minutes * 60 * 1000;
-    saveState();
-
-    running = true;
-    startBtn && (startBtn.disabled = true);
-    timerEl && (timerEl.textContent = mmss(state.targetTs - Date.now()));
-    mainStatusEl && (mainStatusEl.textContent = `טיימר רץ: ${minutes} דקות`);
-    updateUI();
-
-    tickInterval = setInterval(() => {
-      const left = state.targetTs - Date.now();
-      if (left <= 0) stopTimer();
-      else timerEl && (timerEl.textContent = mmss(left));
-      updateAverage();
-    }, 200);
-  }
-
-  // מאזינים
-  startBtn && startBtn.addEventListener('click', startTimer);
-
-  addSleepBtn && addSleepBtn.addEventListener('click', () => {
-    const start = (sleepStartInp && sleepStartInp.value) || "23:30";
-    const end   = (sleepEndInp   && sleepEndInp.value)   || "07:30";
-    const dur   = calcSleepDurationMin(start, end);
-    state.totalSleepRemovedMin += dur;
-    saveState();
-    updateUI();
-  });
-
-  // ===== חיבור UI להגדרות (ראשי) =====
-  function applyConfigToUI() {
-    if (cfgBaseInp) cfgBaseInp.value = CFG_MAIN.baseMin;
-    if (cfgIncInp)  cfgIncInp.value  = CFG_MAIN.incMin;
-
-    // עדכון כותרת ראשית
-    const firstCardH1 = document.querySelector('.card > h1');
-    if (firstCardH1) {
-      firstCardH1.textContent = `טיימר ${CFG_MAIN.baseMin} דק׳ + ${CFG_MAIN.incMin} דק׳ בכל לחיצה`;
-    }
-
-    // אם הטיימר לא רץ – עדכן את התצוגה ההתחלתית
-    if (!running && timerEl && mainStatusEl) {
-      const initialMinutes = nextTimerMinutes();
-      timerEl.textContent = mmss(initialMinutes * 60 * 1000);
-      mainStatusEl.textContent = 'מוכן להתחיל';
-    }
-
-    updateUI();
-  }
-
-  function saveConfigFromInputs() {
-    const base = Math.max(0, Math.round(Number((cfgBaseInp && cfgBaseInp.value) || 0)));
-    const inc  = Math.max(0, Math.round(Number((cfgIncInp  && cfgIncInp.value)  || 0)));
-    CFG_MAIN = { baseMin: base, incMin: inc };
-    saveMainConfig(CFG_MAIN);
-    applyConfigToUI();
-    if (cfgStatusEl) {
-      cfgStatusEl.textContent = '✅ נשמר. (אם הטיימר רץ – השינוי יחול מהסשן הבא)';
-      setTimeout(() => { cfgStatusEl.textContent = 'ההגדרות נשמרות אוטומטית.'; }, 2500);
-    }
-  }
-
-  cfgSaveBtn && cfgSaveBtn.addEventListener('click', saveConfigFromInputs);
-  cfgBaseInp && cfgBaseInp.addEventListener('change', saveConfigFromInputs);
-  cfgIncInp  && cfgIncInp.addEventListener('change',  saveConfigFromInputs);
-
-  // ===== אתחול מסודר =====
-  (function initMainTimer() {
-    checkResetAfterInactivity();
-    saveState();
-
-    if (!state.targetTs || state.targetTs <= Date.now()) {
-      if (timerEl && mainStatusEl) {
-        const initialMinutes = nextTimerMinutes();
-        timerEl.textContent = mmss(initialMinutes * 60 * 1000);
-        mainStatusEl.textContent = 'מוכן להתחיל';
+      const minutes = parseInt(document.getElementById("minutes").value);
+      if (isNaN(minutes) || minutes <= 0) {
+        document.getElementById("info").innerText = "נא להכניס מספר דקות חוקי";
+        return;
       }
-    } else {
-      running = true;
-      startBtn && (startBtn.disabled = true);
-      mainStatusEl && (mainStatusEl.textContent = 'טיימר רץ');
-      tickInterval = setInterval(() => {
-        const left = state.targetTs - Date.now();
-        if (left <= 0) stopTimer();
-        else timerEl && (timerEl.textContent = mmss(left));
-        updateAverage();
-      }, 200);
+
+      const startTime = new Date();
+      endTime = new Date(startTime.getTime() + minutes * 60000);
+
+      timerInterval = setInterval(updateDisplay, 1000);
+      updateDisplay();
     }
 
-    applyConfigToUI(); // גם מעדכן UI וגם מאתחל “הטיימר הבא”
-  })();
+    function updateDisplay() {
+      const now = new Date();
+      const remainingMs = endTime - now;
 
-  // ===== ציטוטים מתוך quotes.json =====
-  (function initQuotes() {
-    if (!quoteEl || !nextBtn) return;
-
-    let quotes = [];
-    let lastIndex = -1;
-
-    function toText(item){
-      if (typeof item === 'string') return item;
-      if (item && typeof item === 'object') {
-        const txt = item.text || item.quote || item.q || item.content;
-        const author = item.author || item.by || '';
-        return (txt ? txt : JSON.stringify(item)) + (author ? ` — ${author}` : '');
+      if (remainingMs <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById("info").innerHTML =
+          `<b>שעת סיום:</b> ${endTime.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}<br>
+           <b>הטיימר נגמר!</b>`;
+        return;
       }
-      return String(item);
+
+      const remainingSec = Math.floor(remainingMs / 1000);
+      const hrs = Math.floor(remainingSec / 3600);
+      const min = Math.floor((remainingSec % 3600) / 60);
+      const sec = remainingSec % 60;
+
+      const endTimeStr = endTime.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+
+      document.getElementById("info").innerHTML =
+        `<b>שעת סיום:</b> ${endTimeStr}<br>
+         <b>זמן שנשאר:</b> ${hrs}:${String(min).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
     }
-
-    function pickRandom(){
-      if(!quotes.length) return;
-      let i;
-      do { i = Math.floor(Math.random()*quotes.length); }
-      while (quotes.length > 1 && i === lastIndex);
-      lastIndex = i;
-      quoteEl.textContent = toText(quotes[i]);
-    }
-
-    async function loadQuotes(){
-      try{
-        const res = await fetch(JSON_URL, { cache:'no-store' });
-        if(!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const arr = Array.isArray(data) ? data : (Array.isArray(data.quotes) ? data.quotes : []);
-        if(!arr.length) throw new Error('קובץ JSON ללא משפטים');
-        quotes = arr;
-        quoteStatus && (quoteStatus.textContent = '');
-      } catch(err){
-        console.warn('טעינת JSON נכשלה. אם פתחת file:// זה צפוי. שגיאה:', err);
-        quoteStatus && (quoteStatus.textContent = '⚠️ לא הצלחתי לטעון את quotes.json. ודא שהעמוד רץ משרת וששם הקובץ נכון.');
-        quotes = ["גיבוי: כל צעד קטן הוא ניצחון."];
-      } finally {
-        nextBtn.disabled = false;
-        pickRandom();
-      }
-    }
-
-    nextBtn.addEventListener('click', pickRandom);
-    loadQuotes();
-  })();
-
-  // ===== טיימר בוקר (אופציונלי) =====
-  ;(() => {
-    if (!showMorningBtn || !morningCard) return;
-
-    const LS_KEY_MORN  = 'morningTimerState';
-    const LS_CFG_MORN  = 'timerMorningConfig_v1';
-
-    // קונפיג לבוקר
-    function loadMorningCfg(){
-      try {
-        const j = JSON.parse(localStorage.getItem(LS_CFG_MORN));
-        return {
-          baseMin: Number.isFinite(j?.baseMin) ? j.baseMin : 30, // ברירת מחדל: 30
-          incMin:  Number.isFinite(j?.incMin)  ? j.incMin  : 15 // ברירת מחדל: 15
-        };
-      } catch { return { baseMin: 30, incMin: 15 }; }
-    }
-    function saveMorningCfg(cfg){
-      try { localStorage.setItem(LS_CFG_MORN, JSON.stringify(cfg)); } catch {}
-    }
-    let MORNING_CFG = loadMorningCfg();
-
-    let morningState   = { count: 0, targetTs: null };
-    let morningRunning = false;
-    let morningInterval= null;
-
-    try {
-      const saved = JSON.parse(localStorage.getItem(LS_KEY_MORN));
-      if (saved && typeof saved.count === 'number') morningState = saved;
-    } catch {}
-
-    function saveMorning() {
-      try { localStorage.setItem(LS_KEY_MORN, JSON.stringify(morningState)); } catch {}
-    }
-
-    function nextMorningMinutes() {
-      const base = Math.max(0, Math.round(MORNING_CFG.baseMin));
-      const inc  = Math.max(0, Math.round(MORNING_CFG.incMin));
-      return base + inc * morningState.count;
-    }
-
-    function updateMorningUI() {
-      morningCountEl && (morningCountEl.textContent = morningState.count || 0);
-      morningNextEl  && (morningNextEl.textContent  = `${nextMorningMinutes()} דקות`);
-    }
-
-    function stopMorning() {
-      morningRunning = false;
-      clearInterval(morningInterval);
-      morningInterval = null;
-      morningState.targetTs = null;
-      saveMorning();
-      startMorningBtn && (startMorningBtn.disabled = false);
-      morningTimerEl && (morningTimerEl.textContent = '00:00');
-      morningStatus  && (morningStatus.textContent  = 'הטיימר הסתיים');
-    }
-
-    function startMorning() {
-      if (morningRunning) return;
-      const nowTs   = Date.now();
-      const minutes = nextMorningMinutes();
-      morningState.count += 1;
-      morningState.targetTs = nowTs + minutes * 60 * 1000;
-      saveMorning();
-      morningRunning = true;
-      startMorningBtn && (startMorningBtn.disabled = true);
-      morningTimerEl && (morningTimerEl.textContent = mmss(morningState.targetTs - Date.now()));
-      morningStatus  && (morningStatus.textContent  = `טיימר רץ: ${minutes} דקות`);
-      updateMorningUI();
-
-      morningInterval = setInterval(() => {
-        const left = morningState.targetTs - Date.now();
-        if (left <= 0) stopMorning();
-        else morningTimerEl && (morningTimerEl.textContent = mmss(left));
-      }, 200);
-    }
-
-    // הגדרות בוקר (UI) – אם הוספת ב-HTML
-    const mBaseInp = document.getElementById('cfgMorningBase');
-    const mIncInp  = document.getElementById('cfgMorningInc');
-    const mSaveBtn = document.getElementById('cfgMorningSaveBtn');
-
-    function applyMorningCfgToUI(){
-      if (mBaseInp) mBaseInp.value = MORNING_CFG.baseMin;
-      if (mIncInp)  mIncInp.value  = MORNING_CFG.incMin;
-      updateMorningUI();
-      if (!morningRunning && morningTimerEl) {
-        morningTimerEl.textContent = mmss(nextMorningMinutes() * 60 * 1000);
-      }
-    }
-    function saveMorningFromInputs(){
-      const base = Math.max(0, Math.round(Number((mBaseInp && mBaseInp.value) || 0)));
-      const inc  = Math.max(0, Math.round(Number((mIncInp  && mIncInp.value)  || 0)));
-      MORNING_CFG = { baseMin: base, incMin: inc };
-      saveMorningCfg(MORNING_CFG);
-      applyMorningCfgToUI();
-    }
-    mSaveBtn && mSaveBtn.addEventListener('click', saveMorningFromInputs);
-    mBaseInp && mBaseInp.addEventListener('change', saveMorningFromInputs);
-    mIncInp  && mIncInp.addEventListener('change',  saveMorningFromInputs);
-
-    showMorningBtn.addEventListener('click', () => { morningCard.style.display = 'block'; });
-
-    // אתחול
-    applyMorningCfgToUI();
-    if (morningTimerEl) {
-      if (morningState.targetTs && morningState.targetTs > Date.now()) {
-        morningRunning = true;
-        startMorningBtn && (startMorningBtn.disabled = true);
-        morningStatus && (morningStatus.textContent = 'טיימר רץ');
-        morningInterval = setInterval(() => {
-          const left = morningState.targetTs - Date.now();
-          if (left <= 0) stopMorning();
-          else morningTimerEl.textContent = mmss(left);
-        }, 200);
-      } else {
-        morningTimerEl.textContent = mmss(nextMorningMinutes() * 60 * 1000);
-      }
-    }
-  })();
-})();
-</script>
-  
-</script>
+  </script>
 </body>
 </html>
