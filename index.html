@@ -1,95 +1,102 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>טיימר אישי</title>
+  <title>טיימר ועישון</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #0b1020;
-      color: #eaf0ff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 20px;
+      font-family: Heebo, Arial, sans-serif;
+      background: linear-gradient(135deg, #6a5af9, #7f6dfc);
+      color: #fff;
+      text-align: center;
+      padding: 40px;
     }
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: none;
+    h1 {
+      margin-bottom: 20px;
+    }
+    .stats {
+      margin: 20px 0;
+      font-size: 1.2em;
     }
     button {
-      background: #6ea8fe;
-      color: white;
-      cursor: pointer;
-    }
-    .display {
-      font-size: 22px;
-      background: #121734;
-      padding: 20px;
+      margin: 10px;
+      padding: 12px 20px;
+      font-size: 1.1em;
+      border: none;
       border-radius: 12px;
-      width: 280px;
-      text-align: center;
+      background: #70e1a1;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #57c98a;
+    }
+    #timer {
+      margin-top: 20px;
+      font-size: 2em;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h2>⏳ טיימר אישי</h2>
+  <h1>מעקב טיימרים ועישון</h1>
 
-  <label>כמה דקות להפעיל?
-    <input type="number" id="minutes" placeholder="לדוגמה: 120">
-  </label>
-  <button onclick="startTimer()">הפעל טיימר</button>
-
-  <div class="display" id="info">
-    עדיין לא הופעל טיימר
+  <div class="stats">
+    טיימרים שהפעלתי: <span id="timerCount">0</span><br>
+    סך הכל עישנתי: <span id="smokeCount">0</span><br>
+    שיא טיימרים לפני שנשברתי: <span id="bestStreak">0</span>
   </div>
 
+  <button onclick="startTimer()">הפעל טיימר (15 דק')</button>
+  <button onclick="smoked()">עישנתי</button>
+
+  <div id="timer">00:00</div>
+
   <script>
-    let endTime, timerInterval;
+    let timerCount = 0;
+    let smokeCount = 0;
+    let bestStreak = 0;
+    let currentStreak = 0;
+    let timer;
+    let timeLeft = 0;
 
     function startTimer() {
-      clearInterval(timerInterval);
+      if (timer) clearInterval(timer);
+      timeLeft = 15 * 60; // 15 דקות בשניות
+      timerCount++;
+      currentStreak++;
+      document.getElementById("timerCount").innerText = timerCount;
+      updateTimerDisplay();
 
-      const minutes = parseInt(document.getElementById("minutes").value);
-      if (isNaN(minutes) || minutes <= 0) {
-        document.getElementById("info").innerText = "נא להכניס מספר דקות חוקי";
-        return;
-      }
-
-      const startTime = new Date();
-      endTime = new Date(startTime.getTime() + minutes * 60000);
-
-      timerInterval = setInterval(updateDisplay, 1000);
-      updateDisplay();
+      timer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          document.getElementById("timer").innerText = "נגמר!";
+        }
+      }, 1000);
     }
 
-    function updateDisplay() {
-      const now = new Date();
-      const remainingMs = endTime - now;
+    function updateTimerDisplay() {
+      let minutes = Math.floor(timeLeft / 60);
+      let seconds = timeLeft % 60;
+      document.getElementById("timer").innerText =
+        String(minutes).padStart(2, '0') + ":" + String(seconds).padStart(2, '0');
+    }
 
-      if (remainingMs <= 0) {
-        clearInterval(timerInterval);
-        document.getElementById("info").innerHTML =
-          `<b>שעת סיום:</b> ${endTime.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}<br>
-           <b>הטיימר נגמר!</b>`;
-        return;
+    function smoked() {
+      smokeCount++;
+      document.getElementById("smokeCount").innerText = smokeCount;
+
+      // בדיקה אם שברתי שיא
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+        document.getElementById("bestStreak").innerText = bestStreak;
+        alert("כל הכבוד! שברת שיא חדש: " + bestStreak + " טיימרים רצופים!");
       }
 
-      const remainingSec = Math.floor(remainingMs / 1000);
-      const hrs = Math.floor(remainingSec / 3600);
-      const min = Math.floor((remainingSec % 3600) / 60);
-      const sec = remainingSec % 60;
-
-      const endTimeStr = endTime.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
-
-      document.getElementById("info").innerHTML =
-        `<b>שעת סיום:</b> ${endTimeStr}<br>
-         <b>זמן שנשאר:</b> ${hrs}:${String(min).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+      currentStreak = 0; // אפס אחרי שנשברתי
     }
   </script>
 </body>
