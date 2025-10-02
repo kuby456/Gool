@@ -2,16 +2,25 @@
 <html lang="he">
 <head>
   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  
   <title>טיימר ועישון</title>
+
+  <!-- מאפשר זום בטלפון -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+
   <style>
     body {
       font-family: Heebo, Arial, sans-serif;
       background: linear-gradient(135deg, #6a5af9, #7f6dfc);
       color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
       text-align: center;
-      padding: 40px;
+    }
+    .app {
+      max-width: 400px;
     }
     h1 {
       margin-bottom: 20px;
@@ -19,6 +28,7 @@
     .stats {
       margin: 20px 0;
       font-size: 1.2em;
+      line-height: 1.8em;
     }
     button {
       margin: 10px;
@@ -41,18 +51,20 @@
   </style>
 </head>
 <body>
-  <h1>מעקב טיימרים ועישון</h1>
+  <div class="app">
+    <h1>מעקב טיימרים ועישון</h1>
 
-  <div class="stats">
-    טיימרים שהפעלתי: <span id="timerCount">0</span><br>
-    סך הכל עישנתי: <span id="smokeCount">0</span><br>
-    שיא טיימרים לפני שנשברתי: <span id="bestStreak">0</span>
+    <div class="stats">
+      טיימרים שהפעלתי: <span id="timerCount">0</span><br>
+      סך הכל עישנתי: <span id="smokeCount">0</span><br>
+      שיא טיימרים לפני שנשברתי: <span id="bestStreak">0</span>
+    </div>
+
+    <button onclick="startTimer()">הפעל טיימר (15 דק')</button>
+    <button onclick="smoked()">עישנתי</button>
+
+    <div id="timer">00:00</div>
   </div>
-
-  <button onclick="startTimer()">הפעל טיימר (15 דק')</button>
-  <button onclick="smoked()">עישנתי</button>
-
-  <div id="timer">00:00</div>
 
   <script>
     let timerCount = 0;
@@ -62,12 +74,35 @@
     let timer;
     let timeLeft = 0;
 
+    // טוען מהאחסון המקומי (localStorage)
+    window.onload = function() {
+      if(localStorage.getItem("timerCount")) {
+        timerCount = parseInt(localStorage.getItem("timerCount"));
+        document.getElementById("timerCount").innerText = timerCount;
+      }
+      if(localStorage.getItem("smokeCount")) {
+        smokeCount = parseInt(localStorage.getItem("smokeCount"));
+        document.getElementById("smokeCount").innerText = smokeCount;
+      }
+      if(localStorage.getItem("bestStreak")) {
+        bestStreak = parseInt(localStorage.getItem("bestStreak"));
+        document.getElementById("bestStreak").innerText = bestStreak;
+      }
+    };
+
+    function saveData() {
+      localStorage.setItem("timerCount", timerCount);
+      localStorage.setItem("smokeCount", smokeCount);
+      localStorage.setItem("bestStreak", bestStreak);
+    }
+
     function startTimer() {
       if (timer) clearInterval(timer);
-      timeLeft = 15 * 60; // 15 דקות בשניות
+      timeLeft = 15 * 60; // 15 דקות
       timerCount++;
       currentStreak++;
       document.getElementById("timerCount").innerText = timerCount;
+      saveData();
       updateTimerDisplay();
 
       timer = setInterval(() => {
@@ -91,14 +126,14 @@
       smokeCount++;
       document.getElementById("smokeCount").innerText = smokeCount;
 
-      // בדיקה אם שברתי שיא
       if (currentStreak > bestStreak) {
         bestStreak = currentStreak;
         document.getElementById("bestStreak").innerText = bestStreak;
         alert("כל הכבוד! שברת שיא חדש: " + bestStreak + " טיימרים רצופים!");
       }
 
-      currentStreak = 0; // אפס אחרי שנשברתי
+      currentStreak = 0;
+      saveData();
     }
   </script>
 </body>
