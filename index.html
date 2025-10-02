@@ -8,8 +8,13 @@
       font-family: Heebo, Arial, sans-serif;
       background: linear-gradient(135deg, #6a5af9, #7f6dfc);
       color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh; /* תופס את כל הגובה */
+      margin: 0;
       text-align: center;
-      padding: 40px;
     }
     h1 {
       margin-bottom: 20px;
@@ -17,6 +22,7 @@
     .stats {
       margin: 20px 0;
       font-size: 1.2em;
+      line-height: 1.8em;
     }
     button {
       margin: 10px;
@@ -89,14 +95,12 @@
       smokeCount++;
       document.getElementById("smokeCount").innerText = smokeCount;
 
-      // בדיקה אם שברתי שיא
       if (currentStreak > bestStreak) {
         bestStreak = currentStreak;
         document.getElementById("bestStreak").innerText = bestStreak;
         alert("כל הכבוד! שברת שיא חדש: " + bestStreak + " טיימרים רצופים!");
       }
-
-      currentStreak = 0; // אפס אחרי שנשברתי
+      currentStreak = 0;
     }
   </script>
 </body>
