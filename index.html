@@ -50,7 +50,7 @@
       const remain = endTime - Date.now();
       if(remain <= 0){
         clearInterval(interval); interval=null; endTime=null;
-        duration += 10; // מוסיפים 10 דק' לבא
+        duration += 60; // מוסיפים 10 דק' לבא
         localStorage.setItem("timerMinutes", duration);
         localStorage.removeItem("timerEnd");
         timeEl.textContent = `⏰ נגמר! הבא יהיה ${duration} דקות`;
