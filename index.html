@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>טיימר + מונה עישון</title>
+  <title>טיימר + מונה עישון יומי</title>
   <style>
     body { font-family: Arial, sans-serif; text-align:center; background:#f6f7fb; margin:0; padding:40px; }
     h1 { margin-bottom:20px; }
@@ -29,11 +29,13 @@
   </div>
 
   <script>
-    // === טיימר ===
+    // ===== טיימר =====
     const startBtn = document.getElementById("startBtn");
     const timeEl = document.getElementById("time");
-    let duration = +localStorage.getItem("timerMinutes") || 240; // התחל מ־4 שעות
-    let endTime = null, interval = null;
+
+    let duration = +localStorage.getItem("timerMinutes") || 240; // התחלה 4 שעות
+    let endTime = +localStorage.getItem("timerEnd") || null;
+    let interval = null;
 
     function format(ms){
       const total = Math.max(0, Math.floor(ms/1000));
@@ -48,8 +50,9 @@
       const remain = endTime - Date.now();
       if(remain <= 0){
         clearInterval(interval); interval=null; endTime=null;
-        duration += 10; // הגדלה של 10 דק’
+        duration += 10; // מוסיפים 10 דק' לבא
         localStorage.setItem("timerMinutes", duration);
+        localStorage.removeItem("timerEnd");
         timeEl.textContent = `⏰ נגמר! הבא יהיה ${duration} דקות`;
         return;
       }
@@ -59,33 +62,49 @@
     startBtn.onclick = ()=>{
       if(endTime) return; // כבר רץ
       endTime = Date.now() + duration*60000;
+      localStorage.setItem("timerEnd", endTime);
       interval = setInterval(updateTimer, 500);
       updateTimer();
     };
 
-    // === מונה עישון יומי ===
+    // שחזור מצב טיימר אם היה רץ
+    if(endTime && endTime > Date.now()){
+      interval = setInterval(updateTimer, 500);
+      updateTimer();
+    } else {
+      endTime = null;
+      timeEl.textContent = `מוכן (${duration} דקות)`;
+    }
+
+    // ===== מונה עישון יומי =====
     const smokeBtn = document.getElementById("smokeBtn");
     const smokeCountEl = document.getElementById("smokeCount");
 
     function getTodayKey(){
       const d = new Date();
-      return d.toISOString().slice(0,10); // YYYY-MM-DD
+      // בודק לפי יום שמתעדכן ב-04:00
+      const cutoff = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 4, 0, 0); // היום ב-04:00
+      if(d < cutoff){ 
+        // אם השעה לפני 04:00 – שייך ליום הקודם
+        cutoff.setDate(cutoff.getDate() - 1);
+      }
+      return cutoff.toISOString().slice(0,10); // YYYY-MM-DD
     }
 
     function loadSmoke(){
-      const today = getTodayKey();
+      const key = getTodayKey();
       const data = JSON.parse(localStorage.getItem("smokeData")||"{}");
-      if(!data[today]) data[today]=0;
+      if(!data[key]) data[key]=0;
       localStorage.setItem("smokeData", JSON.stringify(data));
-      smokeCountEl.textContent = data[today];
+      smokeCountEl.textContent = data[key];
     }
 
     function incSmoke(){
-      const today = getTodayKey();
+      const key = getTodayKey();
       const data = JSON.parse(localStorage.getItem("smokeData")||"{}");
-      data[today] = (data[today]||0)+1;
+      data[key] = (data[key]||0)+1;
       localStorage.setItem("smokeData", JSON.stringify(data));
-      smokeCountEl.textContent = data[today];
+      smokeCountEl.textContent = data[key];
     }
 
     smokeBtn.onclick = incSmoke;
