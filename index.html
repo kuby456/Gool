@@ -8,6 +8,7 @@
     body { font-family: Arial, sans-serif; text-align:center; background:#f6f7fb; margin:0; padding:40px; }
     h1 { margin-bottom:20px; }
     #time { font-size:48px; margin:20px 0; }
+    #endAt { font-size:18px; color:#555; margin-top:8px; }
     button { font-size:20px; padding:12px 24px; margin:10px; border:0; border-radius:8px; cursor:pointer; }
     .primary { background:#2563eb; color:#fff; }
     .warn { background:#f59e0b; color:#111; }
@@ -19,6 +20,7 @@
 
   <div class="box">
     <div id="time">מוכן (4 שעות)</div>
+    <div id="endAt"></div>
     <button id="startBtn" class="primary">התחל טיימר</button>
   </div>
 
@@ -32,8 +34,9 @@
     // ===== טיימר =====
     const startBtn = document.getElementById("startBtn");
     const timeEl = document.getElementById("time");
+    const endAtEl = document.getElementById("endAt");
 
-    let duration = +localStorage.getItem("timerMinutes") || 80; // התחלה 4 שעות
+    let duration = +localStorage.getItem("timerMinutes") || 60; // התחלה 4 שעות
     let endTime = +localStorage.getItem("timerEnd") || null;
     let interval = null;
 
@@ -45,6 +48,11 @@
       return `${h}:${m}:${s}`;
     }
 
+    function formatHour(ts){
+      const d = new Date(ts);
+      return d.toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"});
+    }
+
     function updateTimer(){
       if(!endTime) return;
       const remain = endTime - Date.now();
@@ -54,9 +62,11 @@
         localStorage.setItem("timerMinutes", duration);
         localStorage.removeItem("timerEnd");
         timeEl.textContent = `⏰ נגמר! הבא יהיה ${duration} דקות`;
+        endAtEl.textContent = "";
         return;
       }
       timeEl.textContent = format(remain);
+      endAtEl.textContent = "יסתיים בשעה: " + formatHour(endTime);
     }
 
     startBtn.onclick = ()=>{
@@ -74,6 +84,7 @@
     } else {
       endTime = null;
       timeEl.textContent = `מוכן (${duration} דקות)`;
+      endAtEl.textContent = "";
     }
 
     // ===== מונה עישון יומי =====
@@ -82,13 +93,10 @@
 
     function getTodayKey(){
       const d = new Date();
-      // בודק לפי יום שמתעדכן ב-04:00
-      const cutoff = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 4, 0, 0); // היום ב-04:00
-      if(d < cutoff){ 
-        // אם השעה לפני 04:00 – שייך ליום הקודם
-        cutoff.setDate(cutoff.getDate() - 1);
-      }
-      return cutoff.toISOString().slice(0,10); // YYYY-MM-DD
+      // cutoff = היום ב-04:00
+      const cutoff = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 4, 0, 0);
+      if(d < cutoff){ cutoff.setDate(cutoff.getDate() - 1); }
+      return cutoff.toISOString().slice(0,10);
     }
 
     function loadSmoke(){
