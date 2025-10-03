@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>טיימר ועישון</title>
-
-  <!-- מאפשר זום בטלפון -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-
   <style>
     body {
       font-family: Heebo, Arial, sans-serif;
@@ -72,9 +69,9 @@
     let bestStreak = 0;
     let currentStreak = 0;
     let timer;
-    let timeLeft = 0;
+    let endTime = null;
 
-    // טוען מהאחסון המקומי (localStorage)
+    // טוען נתונים מהאחסון
     window.onload = function() {
       if(localStorage.getItem("timerCount")) {
         timerCount = parseInt(localStorage.getItem("timerCount"));
@@ -88,38 +85,51 @@
         bestStreak = parseInt(localStorage.getItem("bestStreak"));
         document.getElementById("bestStreak").innerText = bestStreak;
       }
+      if(localStorage.getItem("endTime")) {
+        endTime = parseInt(localStorage.getItem("endTime"));
+        resumeTimer();
+      }
     };
 
     function saveData() {
       localStorage.setItem("timerCount", timerCount);
       localStorage.setItem("smokeCount", smokeCount);
       localStorage.setItem("bestStreak", bestStreak);
+      if (endTime) {
+        localStorage.setItem("endTime", endTime);
+      } else {
+        localStorage.removeItem("endTime");
+      }
     }
 
     function startTimer() {
       if (timer) clearInterval(timer);
-      timeLeft = 15 * 60; // 15 דקות
+      endTime = Date.now() + (15 * 60 * 1000); // זמן סיום ב־milliseconds
       timerCount++;
       currentStreak++;
       document.getElementById("timerCount").innerText = timerCount;
       saveData();
-      updateTimerDisplay();
-
-      timer = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-          clearInterval(timer);
-          document.getElementById("timer").innerText = "נגמר!";
-        }
-      }, 1000);
+      resumeTimer();
     }
 
-    function updateTimerDisplay() {
-      let minutes = Math.floor(timeLeft / 60);
-      let seconds = timeLeft % 60;
-      document.getElementById("timer").innerText =
-        String(minutes).padStart(2, '0') + ":" + String(seconds).padStart(2, '0');
+    function resumeTimer() {
+      if (!endTime) return;
+      if (timer) clearInterval(timer);
+
+      timer = setInterval(() => {
+        let remaining = Math.floor((endTime - Date.now()) / 1000);
+        if (remaining <= 0) {
+          clearInterval(timer);
+          document.getElementById("timer").innerText = "נגמר!";
+          endTime = null;
+          saveData();
+        } else {
+          let minutes = Math.floor(remaining / 60);
+          let seconds = remaining % 60;
+          document.getElementById("timer").innerText =
+            String(minutes).padStart(2, '0') + ":" + String(seconds).padStart(2, '0');
+        }
+      }, 1000);
     }
 
     function smoked() {
@@ -133,6 +143,7 @@
       }
 
       currentStreak = 0;
+      endTime = null;
       saveData();
     }
   </script>
