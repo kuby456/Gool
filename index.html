@@ -36,7 +36,7 @@
     const timeEl = document.getElementById("time");
     const endAtEl = document.getElementById("endAt");
 
-    let duration = +localStorage.getItem("timerMinutes") || 120; // התחלה 4 שעות
+    let duration = +localStorage.getItem("timerMinutes") || 150; // התחלה 4 שעות
     let endTime = +localStorage.getItem("timerEnd") || null;
     let interval = null;
 
@@ -58,7 +58,7 @@
       const remain = endTime - Date.now();
       if(remain <= 0){
         clearInterval(interval); interval=null; endTime=null;
-        duration += 60; // מוסיפים 10 דק' לבא
+        duration += 30; // מוסיפים 10 דק' לבא
         localStorage.setItem("timerMinutes", duration);
         localStorage.removeItem("timerEnd");
         timeEl.textContent = `⏰ נגמר! הבא יהיה ${duration} דקות`;
