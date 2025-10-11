@@ -3,153 +3,249 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מנהל עישון</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f6f6f6;
-      margin-top: 40px;
-      direction: rtl;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      background: #4CAF50;
-      color: white;
-      cursor: pointer;
-      transition: background 0.2s;
-      box-shadow: 0 2px 10px #0001;
-    }
-    button:active {
-      background: #388E3C;
-    }
-    button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-    .info {
-      font-size: 20px;
-      margin: 15px 0;
-      color: #333;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px #0001;
-      display: inline-block;
-      padding: 10px 22px;
-    }
-    h1 {
-      color: #4CAF50;
-      margin-bottom: 32px;
-      font-size: 2.2em;
-      letter-spacing: 2px;
-      text-shadow: 0 2px 10px #4CAF5020;
-    }
-    #timer {
-      font-weight: bold;
-      color: #E64A19;
-    }
-  </style>
+  <title>טיימר שחמט</title>
+
+ <style>
+  body {
+    font-family: "Heebo", sans-serif;
+    text-align: center;
+    background: linear-gradient(135deg, #f5f7fa, #e4ebf5);
+    margin: 0;
+    padding: 20px;
+  }
+
+  h1 { margin-bottom: 10px; }
+
+  input, select, button {
+    font-size: 18px;
+    margin: 5px;
+    padding: 8px 12px;
+    border-radius: 60px;
+    border: 1px solid #ccc;
+    background-color: #2593eb;
+    color: yellow;
+  }
+
+  /* עטיפה של כפתור + תפריט */
+  .timer-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  #timeSelect {
+    font-size: 18px;
+    padding: 10px 14px;
+    border-radius: 12px;
+  }
+
+  #timerBtn {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 40px;
+    transition: background 0.3s, transform 0.2s;
+  }
+
+  #timerBtn:hover {
+    background: #1e40af;
+    transform: scale(1.05);
+  }
+
+  #timeDisplay {
+    font-size: 40px;
+    margin: 20px 0;
+    font-weight: bold;
+  }
+
+  #log {
+    margin-top: 20px;
+    text-align: right;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 400px;
+    margin-inline: auto;
+    box-shadow: 0 2px 10px #0001;
+  }
+
+  .entry {
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .white {
+    color: #1d4ed8; /* כחול בהיר */
+    text-shadow: 0 0 5px #93c5fd;
+  }
+
+  .black {
+    color: #111;
+    text-shadow: 0 0 4px #aaa;
+  }
+
+  #resetBtn {
+    margin-top: 30px;
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  #resetBtn:hover {
+    background: #b91c1c;
+  }
+</style>
 </head>
 <body>
+  <h1>⏱️ טיימר שחמט</h1>
+  <br>
+  <!-- הכנסת שמות -->
+  <div id="playerSetup">
+    <input id="p1" placeholder="שם שחקן ראשון (לבן)">
+    <input id="p2" placeholder="שם שחקן שני (שחור)">
+    <button id="saveNames">שמור</button>
+  </div>
 
-  <h1>מנהל עישון</h1>
+  <div id="gameArea" style="display:none;">
+    
+    <select id="timeSelect">
+      <option value="60">1:00</option>
+      <option value="90">1:30</option>
+      <option value="120">2:00</option>
+      <option value="150">2:30</option>
+      <option value="180">3:00</option>
+      <option value="210">3:30</option>
+      <option value="240">4:00</option>
+      <option value="270">4:30</option>
+      <option value="300">5:00</option>
+    </select>
+    <br><br><br>
+<div>
+    <!-- כפתור טיימר ותפריט זמנים -->
+    <button id="timerBtn"> טיימר</button>
+      </div>
+    <!-- תצוגת טיימר -->
+    <div id="timeDisplay">00:00</div>
 
-  <div class="info">מספר פארשים נוכחי: <span id="parsh">0</span></div>
-  <div class="info">סה״כ עישונים: <span id="count">0</span></div>
-  <div class="info">טיימר: <span id="timer">מוכן לעישון</span></div>
+    <!-- רשימת מהלכים -->
+    <div id="log"></div>
 
-  <button id="smokeBtn">עישנתי</button>
+    <!-- כפתור איפוס -->
+    <button id="resetBtn">♻️ משחק חדש</button>
+  </div>
 
   <script>
-    const smokeBtn = document.getElementById("smokeBtn");
-    const timerLabel = document.getElementById("timer");
-    const countLabel = document.getElementById("count");
-    const parshLabel = document.getElementById("parsh");
+    let players = JSON.parse(localStorage.getItem("players")) || {};
+    let logs = JSON.parse(localStorage.getItem("logs")) || [];
+    let activePlayer = "white";
+    let timer;
+    let remaining = 0;
+    let startTime = 0;
 
-    // קריאה מה-localStorage
-    let count = parseInt(localStorage.getItem("count")) || 0;
-    let startDate = localStorage.getItem("startDate");
-    let timerEnd = localStorage.getItem("timerEnd");
+    const timeDisplay = document.getElementById("timeDisplay");
+    const logDiv = document.getElementById("log");
 
-    // אם אין תאריך התחלה – נשמור חדש
-    if (!startDate) {
-      startDate = new Date().toISOString();
-      localStorage.setItem("startDate", startDate);
+    // טוען שמות קיימים
+    if (players.white && players.black) {
+      document.getElementById("playerSetup").style.display = "none";
+      document.getElementById("gameArea").style.display = "block";
+      renderLog();
     }
 
-    // כמה פארשים להתחיל איתם
-    const startParsh = 3; // אפשר לשנות אם תרצה
+    document.getElementById("saveNames").onclick = () => {
+      const p1 = document.getElementById("p1").value.trim();
+      const p2 = document.getElementById("p2").value.trim();
+      if (!p1 || !p2) return alert("אנא מלא את שני השמות");
+      players = { white: p1, black: p2 };
+      localStorage.setItem("players", JSON.stringify(players));
+      document.getElementById("playerSetup").style.display = "none";
+      document.getElementById("gameArea").style.display = "block";
+      renderLog();
+    };
 
-    // פונקציה לחישוב ימים שעברו
-    function daysSinceStart() {
-      const diff = new Date() - new Date(startDate);
-      return Math.floor(diff / (1000 * 60 * 60 * 24));
-    }
+    document.getElementById("timerBtn").onclick = () => {
+      const duration = parseInt(document.getElementById("timeSelect").value);
+      if (!timer) startTimer(duration);
+      else stopTimer(duration);
+    };
 
-    // עדכון פארשים
-    function updateParsh() {
-      const parsh = startParsh + Math.floor(daysSinceStart() / 3);
-      parshLabel.textContent = parsh;
-      return parsh;
-    }
-
-    // טיימר
-    let timerInterval;
     function startTimer(seconds) {
-      const endTime = Date.now() + seconds * 1000;
-      localStorage.setItem("timerEnd", endTime);
-      timerEnd = endTime;
-
-      smokeBtn.disabled = true;
-      updateTimer();
-      timerInterval = setInterval(updateTimer, 1000);
+      remaining = seconds;
+      startTime = Date.now();
+      timer = setInterval(updateTimer, 1000);
+      document.getElementById("timerBtn").textContent = " טיימר";
     }
 
-    function updateTimer() {
-      const endTime = parseInt(localStorage.getItem("timerEnd"));
-      const remaining = endTime - Date.now();
+    function stopTimer(duration) {
+  clearInterval(timer);
+  timer = null;
 
-      if (remaining <= 0 || isNaN(endTime)) {
-        clearInterval(timerInterval);
-        localStorage.removeItem("timerEnd");
-        timerLabel.textContent = "מוכן לעישון";
-        smokeBtn.disabled = false;
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const playerName = players[activePlayer];
+  const colorEmoji = activePlayer === "white" ? "♔" : "♚";
+
+  // שמירה בלוקל סטורג'
+  logs.push({ name: playerName, time: elapsed, color: activePlayer });
+  localStorage.setItem("logs", JSON.stringify(logs));
+
+  // מספר המהלך
+  const moveNumber = logs.length;
+
+  // יצירת שורה חדשה
+  const newEntry = document.createElement("div");
+  newEntry.className = `entry ${activePlayer}`;
+  newEntry.innerHTML = `${colorEmoji} <strong>${playerName}</strong> — מהלך #${moveNumber} — שיחקת ב-${Math.floor(elapsed / 60)} דקות ו-${elapsed % 60} שניות`;
+
+  // מוסיף למעלה
+  logDiv.prepend(newEntry);
+
+  // החלפת שחקן
+  activePlayer = activePlayer === "white" ? "black" : "white";
+
+  // בדיקה אם הזמן נגמר
+  if (elapsed < duration) {
+    startTimer(duration);
+  } else {
+    document.getElementById("timerBtn").textContent = "הפעל טיימר";
+    timeDisplay.textContent = `⏰ נגמר הזמן! ${playerName} הפסדת תור.`;
+  }
+}
+    function updateTimer() {
+      remaining--;
+      if (remaining <= 0) {
+        stopTimer(0);
         return;
       }
-
-      const minutes = Math.floor(remaining / 60000);
-      const seconds = Math.floor((remaining % 60000) / 1000);
-      timerLabel.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-      smokeBtn.disabled = true;
+      const min = String(Math.floor(remaining / 60)).padStart(2, "0");
+      const sec = String(remaining % 60).padStart(2, "0");
+      timeDisplay.textContent = `${min}:${sec}`;
     }
 
-    // כפתור עישנתי
-    smokeBtn.addEventListener("click", () => {
-      count++;
-      localStorage.setItem("count", count);
-      countLabel.textContent = count;
-      updateParsh();
-      startTimer(3600); // שעה
-    });
-
-    // בעת טעינה
-    countLabel.textContent = count;
-    updateParsh();
-
-    // המשך טיימר אם קיים
-    if (timerEnd && Date.now() < parseInt(timerEnd)) {
-      timerInterval = setInterval(updateTimer, 1000);
-      updateTimer();
-      smokeBtn.disabled = true;
-    } else {
-      timerLabel.textContent = "מוכן לעישון";
-      smokeBtn.disabled = false;
+    function renderLog() {
+      logDiv.innerHTML = "";
+      logs.forEach(e => {
+        const emoji = e.color === "white" ? "♔" : "♚";
+        logDiv.innerHTML += `<div class="entry ${e.color}">${emoji} ${e.name} שיחקת ב-${Math.floor(e.time / 60)} דקות ו-${e.time % 60} שניות</div>`;
+      });
     }
+
+    document.getElementById("resetBtn").onclick = () => {
+      if (!confirm("האם לאפס את הנתונים ולהתחיל משחק חדש?")) return;
+      localStorage.removeItem("players");
+      localStorage.removeItem("logs");
+      location.reload();
+    };
   </script>
-
 </body>
 </html>
